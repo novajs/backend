@@ -74,7 +74,6 @@ dbctl.get()
     stage.emit('init');
   });
 }).catch(err => {
-  console.log(err);
   let start = Date.now();
 
   log('DB needs init.');
