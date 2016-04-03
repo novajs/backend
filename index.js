@@ -12,13 +12,10 @@
 // const redis   = require('redis');
 const arango  = require('arangojs');
 const async   = require('async');
-const evente  = require('events').EventEmitter;
 
-const log = function() {
-  let args = Array.prototype.slice.call(arguments, 0);
-  args[0]  = 'main: ' + args[0];
-  console.log.apply(console, args);
-}
+// our modules.
+const log     = require('./lib/log.js');
+const stage   = require('./lib/stage.js');
 
 // load our config or die.
 let config;
@@ -40,36 +37,6 @@ let dbctl    = new arango({
   url: DBHOST
 });
 
-let stage    = new evente();
-stage.Stage = 0;
-stage.Sub   = 'INIT';
-stage.Name  = 'unspec'
-
-stage.on('start', data => {
-  this.Stage = data.stage;
-  this.Sub   = data.sub;
-  this.Name  = data.name;
-
-  log(data.sub, 'stage', data.stage+' ('+data.name+'): Started');
-})
-
-stage.on('finished', data => {
-  this.Stage = data.stage-1;
-  this.Sub   = data.sub;
-  this.Name  = data.name;
-
-  log('INIT stage', data.stage+' ('+data.name+'): Finished');
-});
-
-stage.on('failed', data => {
-  this.Stage = data.stage-1;
-  this.Sub   = data.sub;
-  this.Name  = data.name;
-
-  log('INIT stage', data.stage+' ('+data.name+'): Failed');
-  process.exit(1);
-});
-
 let init = () => {
   let that = this;
 
@@ -81,9 +48,6 @@ let init = () => {
 
   try {
     require('./express.js')(dbctl, function() {
-      let Stage = that.Stage;
-      let Sub   = that.Sub;
-
       let args = Array.prototype.slice.call(arguments, 0);
       args[0]  = 'main: '+stage.Sub+ ' stage '+ stage.Stage + ': ' + args[0];
       console.log.apply(console, args);
@@ -94,9 +58,9 @@ let init = () => {
     }
 
     stage.emit('failed', {
-      stage: this.Stage,
-      sub: this.Sub,
-      name: this.Name
+      stage: stage.Stage,
+      sub: stage.Sub,
+      name: stage.Name
     });
   }
 }
