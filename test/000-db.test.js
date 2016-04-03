@@ -27,7 +27,7 @@ let dbctl = new db({
 
 // Make sure it doesn't exist.
 dbctl.dropDatabase(DBNAME).catch(err => {
-  console.log('ERROR: DB DELETE', err);
+  console.log('ERROR: DB DELETE Failed. This is OK');
 })
 
 describe('db', function() {

@@ -38,8 +38,6 @@ let dbctl    = new arango({
 });
 
 let init = () => {
-  let that = this;
-
   stage.emit('start', {
     stage: 1,
     name: 'express',
