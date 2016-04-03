@@ -22,8 +22,8 @@ let config;
 try {
   config  = require('./config/config.json')
 } catch(e) {
-  log('Failed to load config.', e);
-  process.exit(1);
+  config  = require('./config/config.example.json');
+  console.log('Using Example Config. This is not a good idea.');
 }
 
 // STATIC
