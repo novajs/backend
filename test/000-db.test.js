@@ -12,8 +12,8 @@ let config;
 try {
   config  = require('../config/config.json')
 } catch(e) {
-  console.log('Failed to load config.', e);
-  process.exit(1);
+  config  = require('../config/config.example.json');
+  console.log('Using example config');
 }
 
 const DBNAME = config.db.name;
