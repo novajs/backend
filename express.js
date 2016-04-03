@@ -24,8 +24,7 @@ module.exports = (dbctl, log, stage) => {
   try {
     config  = require('./config/config.json')
   } catch(e) {
-    log('Failed to load config.', e);
-    process.exit(1);
+    config  = require('./config/config.example.json');
   }
 
   let app       = express();
