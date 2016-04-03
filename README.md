@@ -1,6 +1,6 @@
 # otbackend
 
-Backend Service in [Node.js](https://nodejs.org) for OnionTweet.
+Backend Service in [Node.js](https://nodejs.org) for Verteilt
 
 ## Installation
 
