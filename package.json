@@ -1,0 +1,34 @@
+{
+  "name": "otbackend",
+  "version": "1.0.0",
+  "description": "OnionTweet Backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oniontweet/backend.git"
+  },
+  "keywords": [
+    "oniontweet",
+    "twitter",
+    "backend"
+  ],
+  "author": "Jared Allard <jaredallard@outlook.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/oniontweet/backend/issues"
+  },
+  "homepage": "https://github.com/oniontweet/backend#readme",
+  "dependencies": {
+    "arangojs": "^4.3.0",
+    "async": "^2.0.0-rc.2",
+    "express": "^4.13.4",
+    "redis": "^2.6.0-1"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "mocha": "^2.4.5"
+  }
+}
