@@ -41,19 +41,64 @@ let dbctl    = new arango({
 });
 
 let stage    = new evente();
+stage.Stage = 0;
+stage.Sub   = 'INIT';
+stage.Name  = 'unspec'
+
+stage.on('start', data => {
+  this.Stage = data.stage;
+  this.Sub   = data.sub;
+  this.Name  = data.name;
+
+  log(data.sub, 'stage', data.stage+' ('+data.name+'): Started');
+})
+
+stage.on('finished', data => {
+  this.Stage = data.stage-1;
+  this.Sub   = data.sub;
+  this.Name  = data.name;
+
+  log('INIT stage', data.stage+' ('+data.name+'): Finished');
+});
+
+stage.on('failed', data => {
+  this.Stage = data.stage-1;
+  this.Sub   = data.sub;
+  this.Name  = data.name;
+
+  log('INIT stage', data.stage+' ('+data.name+'): Failed');
+  process.exit(1);
+});
 
 let init = () => {
-  log('INIT stage 1: start express');
+  let that = this;
+
+  stage.emit('start', {
+    stage: 1,
+    name: 'express',
+    sub: 'INIT'
+  })
 
   try {
-    require('./express.js')(dbctl, log, stage);
+    require('./express.js')(dbctl, function() {
+      let Stage = that.Stage;
+      let Sub   = that.Sub;
+
+      let args = Array.prototype.slice.call(arguments, 0);
+      args[0]  = 'main: '+stage.Sub+ ' stage '+ stage.Stage + ': ' + args[0];
+      console.log.apply(console, args);
+    }, stage);
   } catch(err) {
     if(err === 'ERROR') {
       process.exit(2);
     }
-  }
 
-  log('INIT Finished.')
+    stage.emit('failed', {
+      stage: this.Stage,
+      sub: this.Sub,
+      name: this.Name
+    });
+  }
 }
 
 // Set the Database
