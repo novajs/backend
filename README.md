@@ -1,5 +1,7 @@
 # otbackend
 
+[![Circle CI](https://circleci.com/gh/verteilt/backend/tree/master.svg?style=svg)](https://circleci.com/gh/verteilt/backend/tree/master)
+
 Backend Service in [Node.js](https://nodejs.org) for Verteilt
 
 ## Installation
