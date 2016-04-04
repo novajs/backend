@@ -10,8 +10,3 @@ dependencies:
     - sudo apt-get install apt-transport-https
     - sudo apt-get update
     - sudo apt-get install arangodb
-
-test:
-  override:
-    - mkdir -p $CIRCLE_TEST_REPORTS/junit/
-    - mocha test --reporter mocha-junit-reporter --reporter-options mochaFile=$CIRCLE_TEST_REPORTS/junit/junit.xml
