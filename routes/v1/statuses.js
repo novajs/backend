@@ -8,8 +8,7 @@
 
 'use strict';
 
-const express = require('express');
+module.exports = (Router, dbctl) => {
 
-let statuses = new express.Router();
-
-module.exports = statuses;
+  return Router;
+}

@@ -1,5 +1,5 @@
 /**
- * OnionTweet - a Tor Twitter Service.
+ * Verteilt - a Distrubted Status sharing service
  *
  * @author Jared Allard <jaredallard@outlook.com>
  * @version 0.1.0
@@ -73,7 +73,7 @@ dbctl.get()
   setTimeout(function() {
     stage.emit('init');
   });
-}).catch(err => {
+}).catch(() => {
   let start = Date.now();
 
   log('DB needs init.');

@@ -27,7 +27,9 @@ module.exports = (dbctl, log, stage) => {
     config  = require('./config/config.example.json');
   }
 
-  let app       = express();
+  const API_VERSION = config.server.api_version;
+
+  let app = express();
 
   // middleware.
 
@@ -39,17 +41,18 @@ module.exports = (dbctl, log, stage) => {
      * Load Express Routes
      **/
     function(next) {
-      let ROUTES = path.join(__dirname, 'routes', 'v1');
+      let ROUTES = path.join(__dirname, 'routes', API_VERSION);
       fs.readdir(ROUTES, (err, list) => {
         if(err) {
           return next(err);
         }
 
         async.each(list, function(route, next) {
-          let Path = path.join(ROUTES, route);
-          let name = path.parse(route).name;
+          let Path  = path.join(ROUTES, route);
+          let name  = path.parse(route).name;
+          let mount = path.join('/', API_VERSION, '/', name)
 
-          log('load route', name);
+          log('mount route', name, 'on', mount);
 
           let eroute;
           try {
@@ -58,7 +61,15 @@ module.exports = (dbctl, log, stage) => {
             return next(e);
           }
 
-          app.use(name, eroute);
+          // execute eroute "constructor"
+          let router = eroute(new express.Router(), dbctl);
+
+          // Hook in the newly created route.
+          app.use(mount, router);
+
+          app.get('/'+API_VERSION, function(req, res) {
+            res.send('')
+          });
 
           return next()
         }, function(err) {
