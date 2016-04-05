@@ -26,6 +26,8 @@
     "arangojs": "^4.3.0",
     "async": "^2.0.0-rc.2",
     "express": "^4.13.4",
+    "oauthorize": "^0.1.0",
+    "passport": "^0.3.2",
     "redis": "^2.6.0-1"
   },
   "devDependencies": {
