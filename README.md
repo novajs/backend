@@ -1,4 +1,4 @@
-# otbackend
+# vtbackend
 
 [![Circle CI](https://circleci.com/gh/verteilt/backend/tree/master.svg?style=svg)](https://circleci.com/gh/verteilt/backend/tree/master)
 
