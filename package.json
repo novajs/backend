@@ -1,7 +1,7 @@
 {
-  "name": "vtbackend",
+  "name": "novajs-backend",
   "version": "1.0.0",
-  "description": "Verteilt Backend",
+  "description": "NovaJS Backend",
   "main": "index.js",
   "scripts": {
     "test": "mocha",
@@ -9,25 +9,21 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/verteilt/backend.git"
+    "url": "git+https://github.com/novajs/backend.git"
   },
   "keywords": [
-    "vtbackend",
+    "novjs",
     "backend"
   ],
   "author": "Jared Allard <jaredallard@outlook.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/verteilt/backend/issues"
+    "url": "https://github.com/novajs/backend/issues"
   },
-  "homepage": "https://github.com/verteilt/backend#readme",
+  "homepage": "https://github.com/novajs/backend#readme",
   "dependencies": {
-    "arangojs": "^4.3.0",
     "async": "^2.0.0-rc.2",
-    "express": "^4.13.4",
-    "oauthorize": "^0.1.0",
-    "passport": "^0.3.2",
-    "redis": "^2.6.0-1"
+    "express": "^4.13.4"
   },
   "devDependencies": {
     "gulp": "^3.9.1",

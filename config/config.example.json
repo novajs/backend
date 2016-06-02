@@ -1,9 +1,10 @@
 {
   "db": {
-    "name": "ot",
-    "host": "http://127.0.0.1:8529",
-    "username": "root",
-    "password": ""
+    "name": "novajs",
+    "host": "",
+    "username": null,
+    "password": null,
+    "apikey": "2f124d11-4024-4f4c-b3df-c4729fcbb08f"
   },
   "server": {
     "port": 8000,

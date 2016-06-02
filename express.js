@@ -6,14 +6,14 @@
  * @license MIT
  **/
 
+'use strict';
+
 const express = require('express');
 const fs      = require('fs');
 const async   = require('async');
 const path    = require('path');
-//const arango  = require('arangojs');
 
 module.exports = (dbctl, log, stage) => {
-  'use strict';
 
   if(process.argv[2] === '--test-express') {
     throw 'ERROR'
@@ -47,6 +47,7 @@ module.exports = (dbctl, log, stage) => {
           return next(err);
         }
 
+        // for each route, mount on point.
         async.each(list, function(route, next) {
           let Path  = path.join(ROUTES, route);
           let name  = path.parse(route).name;
