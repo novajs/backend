@@ -13,6 +13,10 @@ const fs      = require('fs');
 const async   = require('async');
 const path    = require('path');
 
+// express stuff.
+const morgan  = require('morgan');
+const BP      = require('body-parser');
+
 module.exports = (dbctl, log, stage) => {
 
   if(process.argv[2] === '--test-express') {
@@ -30,6 +34,35 @@ module.exports = (dbctl, log, stage) => {
   const API_VERSION = config.server.api_version;
 
   let app = express();
+
+  app.use(morgan('dev'));
+  app.use(BP.json());
+
+  app.use((req, res, next) => {
+    res.error = (status, message) => {
+      if(!status) {
+        status = 200;
+      }
+
+      if(!message) {
+        return res.status(status).send();
+      }
+
+      return res.status(status).send({
+        success: false,
+        message: message
+      });
+    };
+
+    res.success = (data) => {
+      return res.send({
+        success: true,
+        data: data
+      })
+    };
+
+    return next();
+  });
 
   // middleware.
 
@@ -62,15 +95,21 @@ module.exports = (dbctl, log, stage) => {
             return next(e);
           }
 
+          if(typeof eroute !== 'function') {
+            log('route', name, 'isn\'t a valid route. (not mounting)');
+            return next();
+          }
+
           // execute eroute "constructor"
           let router = eroute(new express.Router(), dbctl);
 
+          if(typeof router !== 'function') {
+            log('route', name, 'didn\'t return a Router (not mounting)');
+            return next()
+          }
+
           // Hook in the newly created route.
           app.use(mount, router);
-
-          app.get('/'+API_VERSION, function(req, res) {
-            res.send('')
-          });
 
           return next()
         }, function(err) {
@@ -81,6 +120,11 @@ module.exports = (dbctl, log, stage) => {
           return next();
         });
       })
+
+      app.use(function(err, req, res, next) {
+        console.error(err);
+        return next();
+      });
     }
   ], err => {
     if(err) {

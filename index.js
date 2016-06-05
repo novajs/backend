@@ -13,6 +13,7 @@ const async   = require('async');
 // our modules.
 const log     = require('./lib/log.js');
 const stage   = require('./lib/stage.js');
+const DB      = require('./lib/db.js');
 
 // load our config or die.
 let config;
@@ -25,7 +26,7 @@ try {
 }
 
 // template to test it.
-let dbctl = {};
+let dbctl = new DB(config);
 
 let init = () => {
   stage.emit('start', {

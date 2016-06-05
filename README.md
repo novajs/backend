@@ -10,6 +10,13 @@ gulp
 npm start
 ```
 
+## TODO
+
+* [ ] Implement reCapatcha on the new user API and possible login API.
+* [x] Implement SCRYPT on the user credentials.
+* [ ] Implement the storage backend.
+* [ ] Implement API to interact with docker hosts.
+
 ## Testing
 
 ```bash
