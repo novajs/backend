@@ -24,8 +24,11 @@
   "dependencies": {
     "async": "^2.0.0-rc.2",
     "body-parser": "^1.15.1",
+    "dockerode": "^2.2.10",
     "express": "^4.13.4",
+    "hostile": "^1.0.2",
     "morgan": "^1.7.0",
+    "node-uuid": "^1.4.7",
     "orchestrate": "^0.8.0",
     "scrypt": "^6.0.3"
   },

@@ -9,7 +9,10 @@
 'use strict';
 
 module.exports = (Router, dbctl) => {
-  const auth = require('../../lib/auth.js');
+  const Auth = require('../../lib/auth.js');
+  let auth   = new Auth(dbctl);
+  
+  Router.use(auth.requireAuthentication())
 
   Router.get('/', (req, res) => {
     return res.send({
