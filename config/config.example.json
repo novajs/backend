@@ -8,5 +8,8 @@
   "server": {
     "port": 8000,
     "api_version": "v1"
+  },
+  "proxy": {
+    "template": "http://workspace-{{name}}.wrk"
   }
 }

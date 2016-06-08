@@ -27,6 +27,7 @@
     "dockerode": "^2.2.10",
     "express": "^4.13.4",
     "hostile": "^1.0.2",
+    "http-proxy": "^1.13.3",
     "morgan": "^1.7.0",
     "node-uuid": "^1.4.7",
     "orchestrate": "^0.8.0",

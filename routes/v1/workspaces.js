@@ -32,15 +32,15 @@ module.exports = (Router, dbctl) => {
 
   let id = new express.Router();
 
-  id.get('/:id/stop', (req, res) => {
+  id.get('/stop', (req, res) => {
 
   });
 
-  id.get('/:id/restart', (req, res) => {
+  id.get('/restart', (req, res) => {
 
   })
 
-  id.get('/:id/start', (req, res) => {
+  id.get('/start', (req, res) => {
     let username = req.user.username;
 
     debug(req.param.id+'#Start', 'starting container for '+username)
@@ -51,26 +51,22 @@ module.exports = (Router, dbctl) => {
         name: 'workspace-'+username,
         ExposedPorts: {
           '80/tcp': {
-            "HostIp": "0.0.0.0",
-            "HostPort": "80"
+            HostIp: '0.0.0.0',
+            HostPort: '80'
+          },
+          '443/tcp': {
+            HostIp: '0.0.0.0',
+            HostPort: '443'
           }
         },
-        'Volumes': {
+        Volumes: {
           '/workspace': {}
         },
-        "Networks": {
-            "bridge": {
-                "IPAMConfig": null,
-                "Links": null,
-                "Aliases": null,
-                "NetworkID": "92ba7365fcda1de8b7a4469d25ded098a5ab0307f2415e96227002e6626f0de8",
-                "EndpointID": "faf37b0e03097526c3148c4520fdab149f8a5128def9ec9f25aa2cbf6c03857c",
-                "Gateway": "172.17.0.1",
-                "IPPrefixLen": 16,
-                "IPv6Gateway": "",
-                "GlobalIPv6Address": "",
-                "GlobalIPv6PrefixLen": 0
-            }
+        Networks: {
+          bridge: {
+            Gateway: '172.17.0.1',
+            IPPrefixLen: 16
+          }
         },
         Env: []
       }, (err, container) => {
@@ -104,6 +100,7 @@ module.exports = (Router, dbctl) => {
               return res.success({
                 status: 'UP',
                 id: ID,
+                name: 'workspace-'+username,
                 network: {
                   ip: IP,
                   host: HOST
@@ -119,11 +116,11 @@ module.exports = (Router, dbctl) => {
     }
   })
 
-  id.get('/:id/status', (req, res) => {
+  id.get('/status', (req, res) => {
 
   });
 
-  Router.use('/id', id);
+  Router.use('/mine', id);
 
   return Router;
 }

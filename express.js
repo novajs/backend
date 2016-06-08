@@ -8,14 +8,17 @@
 
 'use strict';
 
-const express = require('express');
-const fs      = require('fs');
-const async   = require('async');
-const path    = require('path');
+const express   = require('express');
+const fs        = require('fs');
+const httpProxy = require('http-proxy');
+const async     = require('async');
+const path      = require('path');
 
 // express stuff.
 const morgan  = require('morgan');
 const BP      = require('body-parser');
+
+const Auth    = require('./lib/auth.js');
 
 module.exports = (dbctl, log, stage) => {
 
@@ -35,7 +38,7 @@ module.exports = (dbctl, log, stage) => {
 
   let app = express();
 
-  app.use(morgan('dev'));
+  // app.use(morgan('dev'));
   app.use(BP.json());
 
   app.use((req, res, next) => {
@@ -64,9 +67,38 @@ module.exports = (dbctl, log, stage) => {
     return next();
   });
 
-  // middleware.
+  let proxy;
+  let auth = new Auth(dbctl);
+  try {
+    proxy = httpProxy.createProxyServer({});
+  } catch(e) {
 
+  }
 
+  /**
+   * Proxy to the workspace.
+   *
+   **/
+  app.all("/*", (req, res, next) => {
+    let name = req.hostname.split('.')[0];
+    let BASE_URL = req.url;
+    let HOST = config.proxy.template.replace('{{name}}', name);
+
+    if(!name.length === 3) {
+      return next();
+    }
+
+    if(req.url === '/') {
+      // TODO: Authentication establish here.
+    }
+
+    proxy.web(req, res, {
+      target: HOST
+    }, err => {
+      return res.status(404).send('Workspace Not Found')
+    });
+  });
+  
   log('middleware loaded')
 
   async.waterfall([

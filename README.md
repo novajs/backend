@@ -14,9 +14,9 @@ npm start
 
 * [ ] Implement reCapatcha on the new user API and possible login API.
 * [x] Implement SCRYPT on the user credentials.
-* [ ] Implement the storage backend.
-* [ ] Implement API to interact with docker hosts.
-
+* [x] Implement the storage backend (via docker Volumes now)
+* [x] Implement API to interact with docker hosts.
+* [ ] Implement letsencrypt auto cert gen for subdomains
 ## Testing
 
 ```bash
