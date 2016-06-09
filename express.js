@@ -18,6 +18,8 @@ const path      = require('path');
 const morgan  = require('morgan');
 const BP      = require('body-parser');
 
+const debug   = require('debug')('express:stage');
+
 const Auth    = require('./lib/auth.js');
 
 module.exports = (dbctl, log, stage) => {
@@ -85,7 +87,6 @@ module.exports = (dbctl, log, stage) => {
     let name = req.hostname.split('.')[0];
 
     if(req.hostname.split('.').length !== 3) {
-      console.log('Not a subdomain, thus not proxying. Passing to API.');
       return next();
     }
 
@@ -114,6 +115,7 @@ module.exports = (dbctl, log, stage) => {
         let IP = O.docker.ip;
 
         // create a new object in the "dns" cache.
+        debug('proxy', name, '->', IP);
         DNSCACHE[name] = {
           ip: 'http://'+IP,
           success: true

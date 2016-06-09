@@ -22,15 +22,6 @@ module.exports = (Router, dbctl) => {
 
   Router.use(auth.requireAuthentication())
 
-  Router.get('/list', (req, res) => {
-    return res.success([])
-  });
-
-  Router.post('/delegate', (req, res) => {
-
-  });
-
-
   let id = new express.Router();
 
   id.get('/stop', (req, res) => {
