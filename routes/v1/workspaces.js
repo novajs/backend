@@ -10,6 +10,7 @@
 
 const express = require('express');
 const hostile = require('hostile');
+const async   = require('async');
 const debug   = require('debug')('route:workspaces');
 const Docker  = require('dockerode');
 const Auth = require('../../lib/auth.js');
@@ -70,45 +71,81 @@ module.exports = (Router, dbctl) => {
         },
         Env: []
       }, (err, container) => {
-        if(err) throw err;
+        async.waterfall([
+          // catch library errors.
+          (next) => {
+            debug('start', 'catching errors')
+            return next(err);
+          },
 
-        container.start(err => {
-          if(err) throw err;
+          // start the container to make sure it has defaults (new IP, etc)
+          (next) => {
+            debug('start', 'starting container');
+            return container.start(err => {
+              return next(err);
+            });
+          },
 
-          container.inspect((err, data) => {
-            const IP   = data.NetworkSettings.Networks.bridge.IPAddress;
-            const ID   = data.Id;
-            const HOST = 'workspace-'+username+'.wrk'
+          // Pull information about the docker container and store it in the DB.
+          (next) => {
+            debug('start', 'inspecting container and logging information')
+            return container.inspect((err, data) => {
+              if(err) return next(err);
 
-            if(!IP) {
-              container.stop(err => {
-                return res.error(500, 'INTERNAL_CONTAINER_CONFIG_ERROR');
-              });
-            }
-            debug('Container#IP', IP);
+              const IP   = data.NetworkSettings.Networks.bridge.IPAddress;
+              const ID   = data.Id;
+              const NAME = 'workspace-'+username;
 
-            debug('Container#/etc/hosts', HOST);
-            hostile.set(IP, HOST, err => {
-              if(err) {
-                debug('Container#/etc/host', 'failed config', err);
-
-                container.stop(err => {});
-
-                return res.error(500, 'INTERNAL_CONTAINER_HOSTMAP_ERROR');
+              if(!IP) {
+                return next('INVALID_DOCKER_INSPECT_FORMAT');
               }
 
-              return res.success({
-                status: 'UP',
-                id: ID,
-                name: 'workspace-'+username,
-                network: {
-                  ip: IP,
-                  host: HOST
-                }
-              });
-            })
+              debug('start:inspect', 'IP is', IP);
+
+              auth.getUserKeyByUsername(username)
+              .then(key => {
+                debug('start:db', 'user key is', key);
+
+                dbctl.update('users', key, {
+                  docker: {
+                    id: ID,
+                    ip: IP
+                  }
+                })
+                .then(() => {
+                  return next(false, {
+                    ID:   ID,
+                    NAME: NAME,
+                    IP:   IP
+                  })
+                  .fail(err => {
+                    debug('start:db', 'error', err);
+                    return next(err);
+                  })
+                });
+              })
+              .catch(err => {
+                debug('start:auth', 'error', err);
+                return next(err);
+              })
+            });
+          }
+        ], (err, info) => {
+          if(err) {
+            container.stop(() => {});
+            return res.error(500, err);
+          }
+
+          return res.success({
+            status: 'UP',
+            id: info.ID,
+            name: info.NAME,
+            network: {
+              ip: info.IP
+            },
+            owner: username
           });
-        });
+        })
       });
     } catch(e) {
       debug('container', 'error', e);

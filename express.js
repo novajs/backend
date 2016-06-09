@@ -21,10 +21,11 @@ const BP      = require('body-parser');
 const Auth    = require('./lib/auth.js');
 
 module.exports = (dbctl, log, stage) => {
-
   if(process.argv[2] === '--test-express') {
     throw 'ERROR'
   }
+
+  let DNSCACHE = {}
 
   // load our config or die.
   let config;
@@ -43,7 +44,8 @@ module.exports = (dbctl, log, stage) => {
 
   app.use((req, res, next) => {
     res.error = (status, message) => {
-      if(!status) {
+      if(!message) {
+        message = status;
         status = 200;
       }
 
@@ -79,26 +81,55 @@ module.exports = (dbctl, log, stage) => {
    * Proxy to the workspace.
    *
    **/
-  app.all("/*", (req, res, next) => {
+  app.use((req, res, next) => {
     let name = req.hostname.split('.')[0];
-    let BASE_URL = req.url;
-    let HOST = config.proxy.template.replace('{{name}}', name);
 
-    if(!name.length === 3) {
+    if(req.hostname.split('.').length !== 3) {
+      console.log('Not a subdomain, thus not proxying. Passing to API.');
       return next();
     }
 
-    if(req.url === '/') {
-      // TODO: Authentication establish here.
+    let done = (CACHED_OBJ) => {
+      if(req.url === '/') {
+        // TODO: Authentication establish here.
+      }
+
+      return proxy.web(req, res, {
+        target: CACHED_OBJ.ip
+      }, err => {
+        console.log(err);
+        return res.status(404).send('Workspace Not Found')
+      });
     }
 
-    proxy.web(req, res, {
-      target: HOST
-    }, err => {
-      return res.status(404).send('Workspace Not Found')
-    });
+    if(!DNSCACHE[name]) {
+      auth.getUserObject(name)
+      .then(user => {
+        let O = user[0].value;
+
+        if(!O.docker) {
+          return res.error('Workspace hasn\'t been created for this user yet.');
+        }
+
+        let IP = O.docker.ip;
+
+        // create a new object in the "dns" cache.
+        DNSCACHE[name] = {
+          ip: 'http://'+IP,
+          success: true
+        }
+
+        return done(DNSCACHE[name]);
+      })
+      .catch(err => {
+        DNSCACHE[name]
+        return res.error('Failed to Resolve Workspace');
+      })
+    } else {
+      return done(DNSCACHE[name]);
+    }
   });
-  
+
   log('middleware loaded')
 
   async.waterfall([
