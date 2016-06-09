@@ -9,11 +9,16 @@
 'use strict';
 
 const express = require('express');
-const hostile = require('hostile');
 const async   = require('async');
 const debug   = require('debug')('route:workspaces');
 const Docker  = require('dockerode');
-const Auth = require('../../lib/auth.js');
+const mkdirp  = require('mkdirp');
+const fs      = require('fs');
+const path    = require('path');
+
+const Auth    = require('../../lib/auth.js');
+
+console.log('STORAGE: ', global.STORAGE_DIR);
 
 module.exports = (Router, dbctl) => {
 
@@ -47,6 +52,46 @@ module.exports = (Router, dbctl) => {
     });
   });
 
+  id.get('/destroy', (req, res) => {
+    let username = req.user.username;
+
+    auth.getUserWorkspace(username)
+    .then(cont => {
+      debug('start:select', 'ID is', cont.id);
+
+      let container = docker.getContainer(cont.id)
+      container.stop(err => {
+
+        container.remove(err => {
+          auth.getUserKeyByUsername(username)
+          .then(key => {
+            debug('start:db', 'user key is', key);
+
+            dbctl.update('users', key, {
+              docker: false
+            })
+            .then(() => {
+              return res.success('CONTAINER_DESTROYED');
+            })
+            .fail(err => {
+              debug('start:db', 'error', err);
+              return res.error('INTERNAL_CONTAINER_DB_INVALID')
+            })
+          })
+          .catch(err => {
+            debug('start:auth', 'error', err);
+            return res.error('INTERNAL_CONTAINER_AUTH_INVALID')
+          })
+        });
+      })
+    })
+    .catch(err => {
+      if(err === 'NOT_INITIALIZED') {
+        return res.error('INTERNAL_CONTAINER_NOT_INITIALIZED');
+      }
+    });
+  })
+
   id.get('/restart', (req, res) => {
     let username = req.user.username;
 
@@ -78,9 +123,17 @@ module.exports = (Router, dbctl) => {
 
   id.get('/start', (req, res) => {
     let username = req.user.username;
+    let entity   = '111212131313-131313-131313';
 
-    debug(req.param.id+'#Start', 'starting container for '+username)
+    let WORKING_DIR = path.join(global.STORAGE_DIR, username, entity);
 
+    mkdirp.sync(WORKING_DIR);
+
+    debug('start', 'resolved working dir to:', WORKING_DIR);
+
+    if(!entity) {
+      return res.error('INVALID_NO_ASSINGMENT');
+    }
 
     let container = null;
     let selective = {};
@@ -92,27 +145,24 @@ module.exports = (Router, dbctl) => {
           debug('start:select', 'ID is', cont.id);
 
           container = docker.getContainer(cont.id)
-          selective = cont;
 
-          return next(false, false);
+          container.stop(err => {
+            debug('start', 'stopped running container (if it was running)');
+
+            container.remove(err => {
+              debug('start', 'removed old container')
+              return next(err);
+            })
+          })
         })
         .catch(err => {
-          if(err === 'NOT_INITIALIZED') {
-            debug('start:select', 'we don\'t have a workspace yet, let\'s fix that.')
-            return next(false, true)
-          }
+          return next();
         });
       },
 
-      (init, next) => {
-        if(!init) {
-          debug('start:init', 'selectively not INITING, container was FOUND.')
-          return next(false, false);
-        }
-
+      (next) => {
         docker.createContainer({
           Image: 'cloud9-docker',
-          name: 'workspace-'+username,
           ExposedPorts: {
             '80/tcp': {
               HostIp: '0.0.0.0',
@@ -123,44 +173,42 @@ module.exports = (Router, dbctl) => {
               HostPort: '443'
             }
           },
-          Volumes: {
-            '/workspace': {}
-          },
           Networks: {
             bridge: {
               Gateway: '172.17.0.1',
               IPPrefixLen: 16
             }
           },
-          Env: []
+          HostConfig: {
+            Binds: [WORKING_DIR+':/workspace']
+          },
+          Env: [
+            'ASSIGNMENTID='+entity,
+            'USERNAME='+username
+          ]
         }, (err, cont) => {
+          debug('start', 'container created.');
           container = cont;
           return next(err);
         });
       },
 
       // start the container to make sure it has defaults (new IP, etc)
-      (db_init, next) => {
+      (next) => {
         debug('start', 'starting container');
         return container.start(err => {
-          if(err !== null && err.reason === 'container already started' && !db_init) {
-            debug('start:container', 'already started but we\'re selective.')
-            return next(false, db_init);
-          }
-
-          return next(err, db_init);
+          return next(err);
         });
       },
 
       // Pull information about the docker container and store it in the DB.
-      (db_init, next) => {
+      (next) => {
         debug('start', 'inspecting container and logging information')
         return container.inspect((err, data) => {
           if(err) return next(err);
 
           const IP   = data.NetworkSettings.Networks.bridge.IPAddress;
           const ID   = data.Id;
-          const NAME = 'workspace-'+username;
 
           if(!IP) {
             return next('INVALID_DOCKER_INSPECT_FORMAT');
@@ -169,22 +217,11 @@ module.exports = (Router, dbctl) => {
           let done = () => {
             return next(false, {
               ID:   ID,
-              NAME: NAME,
               IP:   IP
             })
           }
 
           debug('start:inspect', 'IP is', IP);
-
-          if(!db_init) {
-            if(selective.ip === IP) {
-              debug('start:db', 'not writing information');
-              return done();
-            }
-
-            debug('start:db', 'we\'re an already existing container, but our IP changed. Writing.');
-          }
-
           auth.getUserKeyByUsername(username)
           .then(key => {
             debug('start:db', 'user key is', key);
@@ -215,10 +252,27 @@ module.exports = (Router, dbctl) => {
         return res.error(500, err);
       }
 
+      if(!global.DNSCACHE) {
+        debug('start', 'WARNING: NO DNSCACHE ON GLOBAL');
+      } else if(!global.DNSCACHE[username]) {
+        global.DNSCACHE[username] = {
+          ip: null,
+          success: false
+        }
+      }
+
+      debug('start', 'updated DNSCACHE');
+      global.DNSCACHE[username].ip = 'http://'+info.IP
+      global.DNSCACHE[username].success = true;
+
+      let dump = JSON.stringify(global.DNSCACHE);
+      fs.writeFileSync(path.join(__dirname, '../..', './cache/dnscache.json'), dump, 'utf8');
+
+      debug('start', 'wrote DNSCACHE to cache dir');
+
       return res.success({
         status: 'UP',
         id: info.ID,
-        name: info.NAME,
         network: {
           ip: info.IP
         },

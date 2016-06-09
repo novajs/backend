@@ -29,6 +29,8 @@ module.exports = (Router, dbctl) => {
       return res.error(400);
     }
 
+    REQ.username = REQ.username.toLowerCase();
+
     async.waterfall([
       // Get the SCRYPT hash.
       (next) => {

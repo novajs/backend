@@ -13,6 +13,7 @@ const fs        = require('fs');
 const httpProxy = require('http-proxy');
 const async     = require('async');
 const path      = require('path');
+const mkdirp    = require('mkdirp');
 
 // express stuff.
 const morgan  = require('morgan');
@@ -27,7 +28,16 @@ module.exports = (dbctl, log, stage) => {
     throw 'ERROR'
   }
 
-  let DNSCACHE = {}
+  mkdirp.sync('./cache');
+
+  let DNSCACHE = './cache/dnscache.json';
+  if(!fs.existsSync(DNSCACHE)) {
+    debug('init', 'DNSCACHE created.');
+    global.DNSCACHE = {};
+  } else {
+    debug('init', 'DNSCACHE loaded from ./cache');
+    global.DNSCACHE = require(DNSCACHE);
+  }
 
   // load our config or die.
   let config;
@@ -99,11 +109,11 @@ module.exports = (dbctl, log, stage) => {
         target: CACHED_OBJ.ip
       }, err => {
         console.log(err);
-        return res.status(404).send('Workspace Not Found')
+        return res.status(404).send('Workspace Not Available (Is it running?)')
       });
     }
 
-    if(!DNSCACHE[name]) {
+    if(!global.DNSCACHE[name]) {
       auth.getUserObject(name)
       .then(user => {
         let O = user[0].value;
@@ -116,19 +126,19 @@ module.exports = (dbctl, log, stage) => {
 
         // create a new object in the "dns" cache.
         debug('proxy', name, '->', IP);
-        DNSCACHE[name] = {
+        global.DNSCACHE[name] = {
           ip: 'http://'+IP,
           success: true
         }
 
-        return done(DNSCACHE[name]);
+        return done(global.DNSCACHE[name]);
       })
       .catch(err => {
-        DNSCACHE[name]
+        global.DNSCACHE[name]
         return res.error('Failed to Resolve Workspace');
       })
     } else {
-      return done(DNSCACHE[name]);
+      return done(global.DNSCACHE[name]);
     }
   });
 
