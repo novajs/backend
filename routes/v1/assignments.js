@@ -10,8 +10,11 @@
 
 module.exports = (Router, dbctl) => {
   const Auth = require('../../lib/auth.js');
-  let auth   = new Auth(dbctl);
-  
+  const Assignment = require('../../lib/assignment.js');
+
+  let auth        = new Auth(dbctl);
+  let assignments = new Assignment(dbctl);
+
   Router.use(auth.requireAuthentication())
 
   Router.get('/', (req, res) => {
@@ -19,6 +22,70 @@ module.exports = (Router, dbctl) => {
       error: "invalid_route"
     });
   });
+
+  Router.get('/list', (req, res) => {
+    assignments.list()
+    .then(results => {
+      let cache = [];
+
+      results.body.results.forEach(a => {
+        cache.push(a.value);
+      });
+
+      cache.sort(function(a,b){
+        return new Date(b.date) - new Date(a.date);
+      });
+
+      return res.success(cache);
+    })
+    .fail(err => {
+      return res.error('INTERNAL_ASSIGNMENT_DB_SEARCH_FAILED');
+    })
+  })
+
+  Router.post('/new', (req, res) => {
+    let username = req.user.username;
+
+    const REQ = req.body;
+
+    if(!REQ.info || !REQ.name) {
+      return res.error(401, 'INVALID_INPUT');
+    }
+
+    if(username !== 'jaredallard') {
+      return res.error('ERR_INVALID_AUTH_SCOPE');
+    }
+
+    assignments.new(REQ.name, REQ.info)
+      .then((data) => {
+        return res.success(data);
+      })
+      .catch(err => {
+        return res.error(err);
+      })
+  })
+
+  Router.post('/update', (req, res) => {
+    let username = req.user.username;
+
+    const REQ = req.body;
+
+    if(!REQ.info || !REQ.name ||!REQ.id) {
+      return res.error(401, 'INVALID_INPUT');
+    }
+
+    if(username !== 'jaredallard') {
+      return res.error('ERR_INVALID_AUTH_SCOPE');
+    }
+
+    assignments.update(REQ.id, REQ.name, REQ.info)
+      .then((data) => {
+        return res.success(data);
+      })
+      .catch(err => {
+        return res.error(err);
+      })
+  })
 
   return Router;
 }
