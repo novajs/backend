@@ -43,6 +43,22 @@ module.exports = (Router, dbctl) => {
     })
   })
 
+  Router.get('/by-id/:id', (req, res) => {
+    let ID = req.params.id;
+
+    if(!ID) {
+      return res.error(405, 'INVALID_INPUT');
+    }
+
+    assignments.getByID(ID)
+    .then(a => {
+      return res.success(a);
+    })
+    .catch(err => {
+      return res.error(err);
+    })
+  })
+
   Router.post('/new', (req, res) => {
     let username = req.user.username;
 
