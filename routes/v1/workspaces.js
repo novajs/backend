@@ -17,13 +17,15 @@ const fs      = require('fs');
 const path    = require('path');
 
 const Auth    = require('../../lib/auth.js');
+const Assignment = require('../../lib/assignment.js');
 
 console.log('STORAGE: ', global.STORAGE_DIR);
 
 module.exports = (Router, dbctl) => {
 
-  const docker = new Docker();
-  const auth   = new Auth(dbctl);
+  const docker      = new Docker();
+  const auth        = new Auth(dbctl);
+  const assignment  = new Assignment(dbctl);
 
   Router.use(auth.requireAuthentication())
 
@@ -121,9 +123,13 @@ module.exports = (Router, dbctl) => {
     });
   })
 
-  id.get('/start', (req, res) => {
+  id.post('/start', (req, res) => {
     let username = req.user.username;
-    let entity   = '111212131313-131313-131313';
+    let entity   = req.body.id;
+
+    if(!entity) {
+      return res.error(405, 'INVALID_INPUT');
+    }
 
     let WORKING_DIR = path.join(global.STORAGE_DIR, username, entity);
 
@@ -138,6 +144,18 @@ module.exports = (Router, dbctl) => {
     let container = null;
     let selective = {};
     async.waterfall([
+      // verify the assignment is real.
+      (next) => {
+        assignment.isValid(entity)
+        .then(a => {
+          debug('start', 'assignment name is:', a.name);
+          return next();
+        })
+        .catch(err => {
+          return next(err);
+        })
+      },
+
       // check if the container already exists
       (next) => {
         auth.getUserWorkspace(username)
@@ -229,7 +247,8 @@ module.exports = (Router, dbctl) => {
             dbctl.update('users', key, {
               docker: {
                 id: ID,
-                ip: IP
+                ip: IP,
+                assignment: entity
               }
             })
             .then(() => {
@@ -248,7 +267,7 @@ module.exports = (Router, dbctl) => {
       }
     ], (err, info) => {
       if(err) {
-        container.stop(() => {});
+        container.stop(() => {container.remove(() => {})});
         return res.error(500, err);
       }
 
@@ -257,6 +276,7 @@ module.exports = (Router, dbctl) => {
       } else if(!global.DNSCACHE[username]) {
         global.DNSCACHE[username] = {
           ip: null,
+          assignment: entity,
           success: false
         }
       }
