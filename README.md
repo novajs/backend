@@ -18,8 +18,11 @@ npm start
 * [x] Implement API to interact with docker hosts.
 * [ ] Implement letsencrypt auto cert gen for subdomains
 * [x] Drop support for /etc/hosts and just cache IPs.
-* [ ] Implement assignments.
-* [ ] Implement initializing volumes and containers for assignment using same container.
+* [x] Implement assignments.
+* [x] Implement initializing volumes and containers for assignment using same container.
+* [ ] Implement INIT script fetching assignments.
+
+* [ ] **OPTIONAL**: Create something to store assignment files (instead of Github)
 
 ## Testing
 

@@ -15,8 +15,6 @@ module.exports = (Router, dbctl) => {
   let auth        = new Auth(dbctl);
   let assignments = new Assignment(dbctl);
 
-  Router.use(auth.requireAuthentication())
-
   Router.get('/', (req, res) => {
     return res.send({
       error: "invalid_route"
@@ -59,7 +57,7 @@ module.exports = (Router, dbctl) => {
     })
   })
 
-  Router.post('/new', (req, res) => {
+  Router.post('/new', auth.requireAuthentication(), (req, res) => {
     let username = req.user.username;
 
     const REQ = req.body;
@@ -81,7 +79,7 @@ module.exports = (Router, dbctl) => {
       })
   })
 
-  Router.post('/update', (req, res) => {
+  Router.post('/update', auth.requireAuthentication(), (req, res) => {
     let username = req.user.username;
 
     const REQ = req.body;

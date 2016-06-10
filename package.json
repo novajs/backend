@@ -24,6 +24,7 @@
   "dependencies": {
     "async": "^2.0.0-rc.2",
     "body-parser": "^1.15.1",
+    "cors": "^2.7.1",
     "dockerode": "^2.2.10",
     "express": "^4.13.4",
     "http-proxy": "^1.13.3",

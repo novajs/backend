@@ -18,6 +18,7 @@ const mkdirp    = require('mkdirp');
 // express stuff.
 const morgan  = require('morgan');
 const BP      = require('body-parser');
+const cors    = require('cors');
 
 const debug   = require('debug')('express:stage');
 
@@ -53,6 +54,7 @@ module.exports = (dbctl, log, stage) => {
 
   // app.use(morgan('dev'));
   app.use(BP.json());
+  app.use(cors());
 
   app.use((req, res, next) => {
     res.error = (status, message) => {
@@ -108,7 +110,6 @@ module.exports = (dbctl, log, stage) => {
       return proxy.web(req, res, {
         target: CACHED_OBJ.ip
       }, err => {
-        console.log(err);
         return res.status(404).send('Workspace Not Available (Is it running?)')
       });
     }

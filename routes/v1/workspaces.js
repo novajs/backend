@@ -133,8 +133,6 @@ module.exports = (Router, dbctl) => {
 
     let WORKING_DIR = path.join(global.STORAGE_DIR, username, entity);
 
-    mkdirp.sync(WORKING_DIR);
-
     debug('start', 'resolved working dir to:', WORKING_DIR);
 
     if(!entity) {
@@ -149,9 +147,14 @@ module.exports = (Router, dbctl) => {
         assignment.isValid(entity)
         .then(a => {
           debug('start', 'assignment name is:', a.name);
+
+          debug('start', 'mkdir -p', WORKING_DIR);
+          mkdirp.sync(WORKING_DIR);
+
           return next();
         })
         .catch(err => {
+          debug('start:assignmentValidCheck', 'error: ', err);
           return next(err);
         })
       },
@@ -168,7 +171,16 @@ module.exports = (Router, dbctl) => {
             debug('start', 'stopped running container (if it was running)');
 
             container.remove(err => {
-              debug('start', 'removed old container')
+
+              if(err) {
+                if(err.reason === 'no such container') {
+                  debug('start', 'container vanished? docker rm? Moving on.')
+                  return next();
+                }
+              } else {
+                debug('start', 'removed old container');
+              }
+
               return next(err);
             })
           })
@@ -267,7 +279,10 @@ module.exports = (Router, dbctl) => {
       }
     ], (err, info) => {
       if(err) {
-        container.stop(() => {container.remove(() => {})});
+        if(container) {
+          debug('start', 'ERROR stop container and remove');
+          container.stop(() => {container.remove(() => {})});
+        }
         return res.error(500, err);
       }
 
