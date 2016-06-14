@@ -25,7 +25,7 @@ module.exports = (Router, dbctl) => {
   Router.post('/new', (req, res) => {
     let REQ = req.body;
 
-    if(!REQ.username || !REQ.email || !REQ.class || !REQ.password) {
+    if(!REQ.username || !REQ.email || !REQ.password) {
       return res.error(400);
     }
 
@@ -54,7 +54,6 @@ module.exports = (Router, dbctl) => {
         dbctl.post('users', {
           username: REQ.username,
           email:    REQ.email,
-          class:    REQ.class,
           password: hash,
           api: {
             public: PUBLIC,

@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
+    "development": "nodemon index.js -i cache",
     "start": "node index.js"
   },
   "repository": {
