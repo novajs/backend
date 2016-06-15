@@ -1,6 +1,6 @@
-# NovaJS Backend
+![Triton](https://github.com/tritonjs/ui/raw/master/public/css/img/tb.png)
 
-Backend Service in [Node.js](https://nodejs.org) for NovaJS
+A backend for managing Cloud9 Core SDK Instances for a Classroom Environment.
 
 ## Installation
 
@@ -20,9 +20,10 @@ npm start
 * [x] Drop support for /etc/hosts and just cache IPs.
 * [x] Implement assignments.
 * [x] Implement initializing volumes and containers for assignment using same container.
-* [ ] Implement INIT script fetching assignments.
-
-* [ ] **OPTIONAL**: Create something to store assignment files (instead of Github)
+* [x] Implement INIT script fetching assignments.
+* [x] Implement Email as Username on /user
+* [x] Implement GET /user for user info.
+* [ ] Update User info on POST /user/me
 
 ## Testing
 

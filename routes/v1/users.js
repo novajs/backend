@@ -16,10 +16,14 @@ module.exports = (Router, dbctl) => {
   const Auth = require('../../lib/auth.js');
   let auth   = new Auth(dbctl);
 
-  Router.get('/', (req, res) => {
-    return res.send({
-      error: "invalid_route"
-    });
+  Router.get('/', auth.requireAuthentication(), (req, res) => {
+    let USER = req.user;
+
+    // remove secrets.
+    delete USER.api;
+    delete USER.password;
+
+    return res.success(USER);
   });
 
   Router.post('/new', (req, res) => {
@@ -145,33 +149,62 @@ module.exports = (Router, dbctl) => {
   Router.post('/authflow', (req, res) => {
     let REQ = req.body;
 
-    if(!REQ.username || !REQ.password) {
+    // no password OR, no username & no email OR, yes username & yes email.
+    if(!REQ.password || (!REQ.username && !REQ.email) || (REQ.username && REQ.email)) {
+      debug('authflow:prevalid', 'failed');
+      debug('authflow:prevalid', REQ);
       return res.error(400)
     }
+
+    // function the keyProvider for SSO
+    let keyProvider = (result, done) => {
+      let user = result[0].value;
+
+      let keys = {
+        p: user.api.public,
+        passphrase: user.password,
+        s: user.api.secret
+      }
+
+      return done(false, keys)
+    };
 
     async.waterfall([
       // Find the User by Username.
       (next) => {
+        if(!REQ.username) return next(false, false);
+
+        debug('authflow:retrieveAuth', 'method: username');
+
         auth.getUserObject(REQ.username)
-        .then(result => {
-          let user = result[0].value;
+          .then(result => {
+            return keyProvider(result, next);
+          })
+          .catch(err => {
+            return next(err);
+          });
+      },
 
-          let keys = {
-            p: user.api.public,
-            passphrase: user.password,
-            s: user.api.secret
-          }
+      // check if using email
+      (keys, next) => {
+        if(!REQ.email) return next(false, keys);
 
-          return next(false, keys)
-        })
-        .catch(err => {
-          console.log(err);
-          return next(err);
-        });
+        debug('authflow:retrieveAuth', 'method: email');
+
+        auth.getUserObjectByEmail(REQ.email)
+          .then(result => {
+            return keyProvider(result, next);
+          })
+          .catch(err => {
+            debug('authflow:retrieveAuth', 'error:', err);
+            return next('AUTH_RETRIEVE_FAILED');
+          })
       },
 
       // Check if the password is valid.
       (keys, next) => {
+        debug('authflow:authcheck', 'check authentication');
+
         auth.isValid(REQ.password, keys.passphrase)
         .then(valid => {
           if(!valid) {
@@ -194,7 +227,8 @@ module.exports = (Router, dbctl) => {
 
       return res.success({
         public: key.p,
-        secret: key.s
+        secret: key.s,
+        method: REQ.username ? 'username' : 'email'
       })
     });
   })
