@@ -23,7 +23,8 @@ npm start
 * [x] Implement INIT script fetching assignments.
 * [x] Implement Email as Username on /user
 * [x] Implement GET /user for user info.
-* [ ] Update User info on POST /user/me
+* [ ] Move some user specific code to /user endpoint.
+* [ ] Realtime status websocket/socket.io on /workspace.
 
 ## Testing
 
