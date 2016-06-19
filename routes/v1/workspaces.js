@@ -3,7 +3,7 @@
  *
  * @author Jared Allard <jaredallard@outlook.com>
  * @license MIT
- * @version 1.0.0
+ * @version 1.2.1
  **/
 
 'use strict';
@@ -31,6 +31,11 @@ module.exports = (Router, dbctl) => {
 
   let id = new express.Router();
 
+  /**
+   * GET /mine/stop
+   *
+   * Stop authenticated users container.
+   **/
   id.get('/stop', (req, res) => {
     let username = req.user.username;
 
@@ -54,6 +59,11 @@ module.exports = (Router, dbctl) => {
     });
   });
 
+  /**
+   * GET /mine/destroy
+   *
+   * Destroy a container.
+   **/
   id.get('/destroy', (req, res) => {
     let username = req.user.username;
 
@@ -62,9 +72,9 @@ module.exports = (Router, dbctl) => {
       debug('start:select', 'ID is', cont.id);
 
       let container = docker.getContainer(cont.id)
-      container.stop(err => {
+      container.stop(() => {
 
-        container.remove(err => {
+        container.remove(() => {
           auth.getUserKeyByUsername(username)
           .then(key => {
             debug('start:db', 'user key is', key);
@@ -94,6 +104,11 @@ module.exports = (Router, dbctl) => {
     });
   })
 
+  /**
+   * GET /mine/restart
+   *
+   * Restart authenticated users container.
+   **/
   id.get('/restart', (req, res) => {
     let username = req.user.username;
 
@@ -123,6 +138,11 @@ module.exports = (Router, dbctl) => {
     });
   })
 
+  /**
+   * GET /mine/start
+   *
+   * Start / Create authenticated users container.
+   **/
   id.post('/start', (req, res) => {
     let username = req.user.username;
     let entity   = req.body.id;
@@ -140,7 +160,6 @@ module.exports = (Router, dbctl) => {
     }
 
     let container = null;
-    let selective = {};
     async.waterfall([
       // verify the assignment is real.
       (next) => {
@@ -167,7 +186,7 @@ module.exports = (Router, dbctl) => {
 
           container = docker.getContainer(cont.id)
 
-          container.stop(err => {
+          container.stop(() => {
             debug('start', 'stopped running container (if it was running)');
 
             container.remove(err => {
@@ -185,7 +204,7 @@ module.exports = (Router, dbctl) => {
             })
           })
         })
-        .catch(err => {
+        .catch(() => {
           return next();
         });
       },
@@ -246,8 +265,8 @@ module.exports = (Router, dbctl) => {
 
           let done = () => {
             return next(false, {
-              ID:   ID,
-              IP:   IP
+              id:   ID,
+              ip:   IP
             })
           }
 
@@ -276,6 +295,53 @@ module.exports = (Router, dbctl) => {
             return next(err);
           })
         });
+      },
+
+      (info, next) => {
+        debug('start:ip_conflict', 'look for', info.ip, 'excluding id', info.id)
+
+        dbctl.search('users', 'docker.ip: "'+info.ip+'"')
+        .then(results => {
+          if(results.body.count === 0) return next('ERR_IP_RESOLVE_CONFLICTS');
+
+          let pointer = results.body.results;
+
+          pointer.forEach(w => {
+            // if not object, invalid response, throw error.
+            if(typeof w !== 'object') throw 'ERR_INVALID_DB_RESPONSE'
+
+            // if it's the same id as we just registered, skip
+            if(w.value.docker.id === info.id) return;
+
+            // match the values.
+            if(w.value.docker.ip === info.ip) {
+              debug('start:ip_conflict:db',
+               'resolve IP conflict for container',
+               w.value.docker.id
+             );
+            }
+          });
+
+          // itterate ove DNSCACHE and in place update it.
+          Object.keys(global.DNSCACHE).forEach(v => {
+            let value = global.DNSCACHE[v];
+            let key   = v;
+
+            if(value.ip === info.ip) {
+              debug('start:ip_conflict:cache',
+                'resolve IP conflict for container owned by', key
+              )
+
+              value.ip = null
+            }
+          })
+
+          return next(false, info);
+        })
+        .fail(err => {
+          debug('start:ip_conflict:err', err);
+          return next(err);
+        })
       }
     ], (err, info) => {
       if(err) {
@@ -297,27 +363,37 @@ module.exports = (Router, dbctl) => {
       }
 
       debug('start', 'updated DNSCACHE');
-      global.DNSCACHE[username].ip = 'http://'+info.IP
+      global.DNSCACHE[username].ip = 'http://'+info.ip
       global.DNSCACHE[username].success = true;
 
-      let dump = JSON.stringify(global.DNSCACHE);
-      fs.writeFileSync(path.join(__dirname, '../..', './cache/dnscache.json'), dump, 'utf8');
+      let dump     = JSON.stringify(global.DNSCACHE);
+      let DNSCACHE = path.join(__dirname, '../..', './cache/dnscache.json')
+      fs.writeFile(DNSCACHE, dump, 'utf8', err => {
+        if(err) {
+          debug('start:cache', 'failed to write cache file...');
+        } else {
+          debug('start:cache', 'wrote DNSCACHE to cache dir');
+        }
 
-      debug('start', 'wrote DNSCACHE to cache dir');
-
-      return res.success({
-        status: 'UP',
-        id: info.ID,
-        network: {
-          ip: info.IP
-        },
-        owner: username
+        return res.success({
+          status: 'UP',
+          id: info.id,
+          network: {
+            ip: info.ip
+          },
+          owner: username
+        });
       });
     })
   })
 
+  /**
+   * GET /mine/status
+   *
+   * Get status of authenticated users container.
+   **/
   id.get('/status', (req, res) => {
-
+    return res.error('NOT_IMPLEMENTED')
   });
 
   Router.use('/mine', id);

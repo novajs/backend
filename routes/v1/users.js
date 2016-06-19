@@ -64,7 +64,7 @@ module.exports = (Router, dbctl) => {
             secret: SECRET
           }
         })
-          .then(results => {
+          .then(() => {
             debug('auth:db', 'successfully added to the database');
             return next();
           })
@@ -126,10 +126,10 @@ module.exports = (Router, dbctl) => {
       // delete the user's key.
       (user, next) => {
         dbctl.remove('users', user.key, true)
-        .then(success => {
+        .then(() => {
           return next();
         })
-        .fail(err => {
+        .fail(() => {
           return next('FAILED_TO_REMOVE_USER_OBJ');
         })
       }
@@ -235,7 +235,7 @@ module.exports = (Router, dbctl) => {
 
   Router.get('/list', (req, res) => {
     return dbctl.search('users', '*')
-    .fail(err => {
+    .fail(() => {
       return res.error(501);
     })
     .then(results => {

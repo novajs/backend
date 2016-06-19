@@ -17,7 +17,7 @@ module.exports = (Router, dbctl) => {
 
   Router.get('/', (req, res) => {
     return res.send({
-      error: "invalid_route"
+      error: 'invalid_route'
     });
   });
 
@@ -36,7 +36,7 @@ module.exports = (Router, dbctl) => {
 
       return res.success(cache);
     })
-    .fail(err => {
+    .fail(() => {
       return res.error('INTERNAL_ASSIGNMENT_DB_SEARCH_FAILED');
     })
   })

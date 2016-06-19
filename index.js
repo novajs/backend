@@ -8,13 +8,10 @@
 
 'use strict';
 
-const async   = require('async');
-const fs      = require('fs');
 const path    = require('path');
 const mkdirp  = require('mkdirp');
 
 // our modules.
-const log     = require('./lib/log.js');
 const stage   = require('./lib/stage.js');
 const DB      = require('./lib/db.js');
 

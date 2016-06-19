@@ -6,7 +6,7 @@
   },
   "rules": {
     /* Possible Errors */
-    "no-extra-parens": 2,
+    "no-extra-parens": 1,
     "valid-jsdoc": 2,
     /* Best Practices */
     "block-scoped-var": 2,
@@ -16,7 +16,7 @@
     "guard-for-in": 2,
     "no-div-regex": 2,
     /* DISABLE IN PRODUCTION */
-    "no-unused-vars": 1,
+    "no-unused-vars": 2,
     "no-console": 0,
     /* END */
     "no-const-assign": 2,

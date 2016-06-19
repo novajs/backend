@@ -15,8 +15,6 @@ const async     = require('async');
 const path      = require('path');
 const mkdirp    = require('mkdirp');
 
-// express stuff.
-const morgan  = require('morgan');
 const BP      = require('body-parser');
 const cors    = require('cors');
 
@@ -88,7 +86,7 @@ module.exports = (dbctl, log, stage) => {
   try {
     proxy = httpProxy.createProxyServer({});
   } catch(e) {
-
+    console.log(e);
   }
 
   /**
@@ -104,12 +102,12 @@ module.exports = (dbctl, log, stage) => {
 
     let done = (CACHED_OBJ) => {
       if(req.url === '/') {
-        // TODO: Authentication establish here.
+        // TO DO Authentication establish here.
       }
 
       return proxy.web(req, res, {
         target: CACHED_OBJ.ip
-      }, err => {
+      }, () => {
         return res.status(404).send('Workspace Not Available (Is it running?)')
       });
     }
@@ -125,6 +123,10 @@ module.exports = (dbctl, log, stage) => {
 
         let IP = O.docker.ip;
 
+        if(IP === null) {
+          throw 'Isn\'t built or was invalidated.'
+        }
+
         // create a new object in the "dns" cache.
         debug('proxy', name, '->', IP);
         global.DNSCACHE[name] = {
@@ -134,7 +136,7 @@ module.exports = (dbctl, log, stage) => {
 
         return done(global.DNSCACHE[name]);
       })
-      .catch(err => {
+      .catch(() => {
         global.DNSCACHE[name]
         return res.error('Failed to Resolve Workspace');
       })
