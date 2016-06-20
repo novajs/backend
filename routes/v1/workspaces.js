@@ -258,15 +258,19 @@ module.exports = (Router, dbctl) => {
 
           const IP   = data.NetworkSettings.Networks.bridge.IPAddress;
           const ID   = data.Id;
+          let   UID  = null;
 
           if(!IP) {
             return next('INVALID_DOCKER_INSPECT_FORMAT');
           }
 
           let done = () => {
+            if(!UID) return next('ERR_INVALID_CALLBACK');
+
             return next(false, {
               id:   ID,
-              ip:   IP
+              ip:   IP,
+              uid:  UID
             })
           }
 
@@ -274,6 +278,8 @@ module.exports = (Router, dbctl) => {
           auth.getUserKeyByUsername(username)
           .then(key => {
             debug('start:db', 'user key is', key);
+
+            UID = key;
 
             dbctl.update('users', key, {
               docker: {
@@ -298,7 +304,7 @@ module.exports = (Router, dbctl) => {
       },
 
       (info, next) => {
-        debug('start:ip_conflict', 'look for', info.ip, 'excluding id', info.id)
+        debug('start:ip_conflict', 'look for', info.ip, 'excluding uid', info.uid)
 
         dbctl.search('users', 'docker.ip: "'+info.ip+'"')
         .then(results => {
@@ -306,20 +312,35 @@ module.exports = (Router, dbctl) => {
 
           let pointer = results.body.results;
 
-          pointer.forEach(w => {
+          async.each(pointer, (w, done) => {
             // if not object, invalid response, throw error.
             if(typeof w !== 'object') throw 'ERR_INVALID_DB_RESPONSE'
 
             // if it's the same id as we just registered, skip
-            if(w.value.docker.id === info.id) return;
+            if(w.path.key === info.uid) return done();
 
-            // match the values.
-            if(w.value.docker.ip === info.ip) {
-              debug('start:ip_conflict:db',
-               'resolve IP conflict for container',
-               w.value.docker.id
-             );
-            }
+            // match the values or return
+            if(w.value.docker.ip !== info.ip) return done();
+
+            debug('start:ip_conflict:db',
+             'resolve IP conflict, cID:',
+             w.value.docker.id,
+             'key:',
+             w.path.key
+            );
+
+            dbctl.update('users', w.path.key, {
+              docker: {
+                ip: null
+              }
+            })
+            .then(done).fail(done);
+          }, e => {
+            if(e) return next(e);
+
+            debug('start:ip_conflict', 'resolved all conflict(s)')
+
+            return next(false, info);
           });
 
           // itterate ove DNSCACHE and in place update it.
@@ -335,8 +356,6 @@ module.exports = (Router, dbctl) => {
               value.ip = null
             }
           })
-
-          return next(false, info);
         })
         .fail(err => {
           debug('start:ip_conflict:err', err);
