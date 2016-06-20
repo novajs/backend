@@ -29,7 +29,7 @@ module.exports = (Router, dbctl) => {
   Router.post('/new', (req, res) => {
     let REQ = req.body;
 
-    if(!REQ.username || !REQ.email || !REQ.password) {
+    if(!REQ.username || !REQ.email || !REQ.password || !REQ.display_name) {
       return res.error(400);
     }
 

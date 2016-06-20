@@ -204,9 +204,7 @@ module.exports = (Router, dbctl) => {
             })
           })
         })
-        .catch(() => {
-          return next();
-        });
+        .catch(next);
       },
 
       (next) => {
@@ -288,9 +286,7 @@ module.exports = (Router, dbctl) => {
                 assignment: entity
               }
             })
-            .then(() => {
-              return done();
-            })
+            .then(done)
             .fail(err => {
               debug('start:db', 'error', err);
               return next(err);
