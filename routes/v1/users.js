@@ -16,6 +16,11 @@ module.exports = (Router, dbctl) => {
   const Auth = require('../../lib/auth.js');
   let auth   = new Auth(dbctl);
 
+  /**
+   * GET /users
+   *
+   * Get authenticated users info.
+   **/
   Router.get('/', auth.requireAuthentication(), (req, res) => {
     let USER = req.user;
 
@@ -26,12 +31,29 @@ module.exports = (Router, dbctl) => {
     return res.success(USER);
   });
 
+  /**
+   * POST /users/new
+   *
+   * Create a new user.
+   **/
   Router.post('/new', (req, res) => {
     let REQ = req.body;
 
-    if(!REQ.username || !REQ.email || !REQ.password || !REQ.display_name) {
-      return res.error(400);
-    }
+    let valid_opts = [
+      'username',
+      'email',
+      'password',
+      'display_name'
+    ];
+
+    let invalid = false;
+    valid_opts.forEach(key => {
+      if(!REQ[key]) {
+        invalid = true;
+      }
+    });
+
+    if(invalid) return res.error('ERR_INVALID_INPUT');
 
     REQ.username = REQ.username.toLowerCase();
 
@@ -42,7 +64,8 @@ module.exports = (Router, dbctl) => {
         .then(result => {
           debug('auth:hash', 'generated scrypt hash.')
           return next(false, result.toString('hex'));
-        }, err => {
+        })
+        .catch(err => {
           debug('auth:hash', 'scrypt hash generation failed');
           return next(err);
         });
@@ -82,70 +105,26 @@ module.exports = (Router, dbctl) => {
     });
   });
 
-  Router.post('/delete', (req, res) => {
-    let REQ = req.body;
-
-    if(!REQ.username || !REQ.password) {
-      return res.error(400)
-    }
-
-    async.waterfall([
-      // Find the User by Username.
-      (next) => {
-        auth.getUserObject(REQ.username)
-        .then(result => {
-          let user = result[0].value;
-          user.key = result[0].path.key;
-
-          debug('remove:db', 'fetched secrets');
-
-          return next(false, user)
-        })
-        .catch(err => {
-          console.log(err);
-          return next(err);
-        });
-      },
-
-      // Check if the password is valid.
-      (user, next) => {
-        auth.isValid(REQ.password, user.password)
-        .then(valid => {
-          if(!valid) {
-            return next('Invalid Auth')
-          }
-
-          debug('remove:authcheck', 'is VALID');
-          return next(false, user);
-        })
-        .catch(err => {
-          return next(err);
-        });
-      },
-
-      // delete the user's key.
-      (user, next) => {
-        dbctl.remove('users', user.key, true)
-        .then(() => {
-          return next();
-        })
-        .fail(() => {
-          return next('FAILED_TO_REMOVE_USER_OBJ');
-        })
-      }
-    ], err => {
-      if(err) {
-        if(err === 'MATCHED_NONE') {
-          return res.error(400, 'USER_NOT_FOUND');
-        }
-
-        return res.error(501, 'FAILED_TO_DELETE_USER');
-      }
-
+  /**
+   * POST /users/delete
+   *
+   * Delete authenticated user.
+   **/
+  Router.post('/delete', auth.requireAuthentication(), (req, res) => {
+    dbctl.remove('users', req.user.id, true)
+    .then(() => {
       return res.success('USER_DELETED');
     })
+    .fail(() => {
+      return res.error('ERR_FAILED_TO_REMOVE_USER');
+    });
   });
 
+  /**
+   * POST /users/authflow
+   *
+   * Get API Token Credentials.
+   **/
   Router.post('/authflow', (req, res) => {
     let REQ = req.body;
 
@@ -180,9 +159,7 @@ module.exports = (Router, dbctl) => {
           .then(result => {
             return keyProvider(result, next);
           })
-          .catch(err => {
-            return next(err);
-          });
+          .catch(next);
       },
 
       // check if using email
@@ -233,14 +210,17 @@ module.exports = (Router, dbctl) => {
     });
   })
 
+  /**
+   * GET /users/list
+   *
+   * Get users.
+   **/
   Router.get('/list', (req, res) => {
     return dbctl.search('users', '*')
     .fail(() => {
       return res.error(501);
     })
     .then(results => {
-      console.log('got results');
-
       let users = [];
 
       results.body.results.forEach(user => {
@@ -248,9 +228,9 @@ module.exports = (Router, dbctl) => {
 
         // push a new object to avoid using delete.
         users.push({
+          display_name: data.display_name,
           username: data.username,
-          email: data.email,
-          class: data.class
+          email: data.email
         });
       });
 
@@ -258,6 +238,11 @@ module.exports = (Router, dbctl) => {
     });
   });
 
+  /**
+   * POST /users/update
+   *
+   * Update user data.
+   **/
   Router.post('/update', auth.requireAuthentication(), (req, res) => {
     let REQ = req.body;
 
