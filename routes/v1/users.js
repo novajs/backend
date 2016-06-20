@@ -258,5 +258,45 @@ module.exports = (Router, dbctl) => {
     });
   });
 
+  Router.post('/update', auth.requireAuthentication(), (req, res) => {
+    let REQ = req.body;
+
+    let valid_opts = [
+      'display_name',
+      'username',
+      'email',
+      'password'
+    ];
+
+    let USER = req.user;
+
+    delete USER.docker;
+    delete USER.api;
+    delete USER.password;
+
+    let opts = {};
+    Object.keys(REQ).forEach(key => {
+      let value = REQ[key];
+
+      if(valid_opts.indexOf(key) === -1) {
+        debug('update:processOpts', 'invalid opt given', key);
+        return;
+      }
+
+      // add to the new object
+      opts[key] = value;
+    });
+
+    dbctl.update('users', USER.id, opts).then(() => {
+      res.success({
+        added: opts,
+        user: USER
+      })
+    })
+    .fail(err => {
+      return res.error(err);
+    })
+  })
+
   return Router;
 }

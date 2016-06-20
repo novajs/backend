@@ -303,6 +303,7 @@ module.exports = (Router, dbctl) => {
         });
       },
 
+      // handle all ip conflicts.
       (info, next) => {
         debug('start:ip_conflict', 'look for', info.ip, 'excluding uid', info.uid)
 
