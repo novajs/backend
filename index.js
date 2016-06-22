@@ -38,7 +38,7 @@ let init = () => {
     stage: 1,
     name: 'express',
     sub: 'INIT'
-  })
+  });
 
   try {
     require('./express.js')(dbctl, function() {
