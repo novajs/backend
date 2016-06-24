@@ -1,5 +1,6 @@
 {
   "db": {
+    "name": "your-orchestrate-db-name-here",
     "host": "api.ctl-uc1-a.orchestrate.io",
     "username": null,
     "password": null,
