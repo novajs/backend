@@ -16,7 +16,6 @@ npm start
 * [x] Implement SCRYPT on the user credentials.
 * [x] Implement the storage backend (via docker Volumes now)
 * [x] Implement API to interact with docker hosts.
-* [ ] Optional: Implement letsencrypt auto cert gen for subdomains
 * [x] Drop support for /etc/hosts and just cache IPs.
 * [x] Implement assignments.
 * [x] Implement initializing volumes and containers for assignment using same container.
