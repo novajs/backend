@@ -262,6 +262,8 @@ module.exports = (Router, dbctl) => {
     // TODO: Validate User Credentials Here.
     delete REQ.password;
 
+    console.log('GOT', REQ);
+
     let opts = {};
     Object.keys(REQ).forEach(key => {
       let value = REQ[key];

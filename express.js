@@ -53,6 +53,7 @@ module.exports = (dbctl, log, stage) => {
   // app.use(morgan('dev'));
   app.use(BP.json());
   app.use(cors());
+  app.use(BP.urlencoded({ extended: true }));
 
   app.use((req, res, next) => {
     res.error = (status, message) => {
