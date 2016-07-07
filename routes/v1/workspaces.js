@@ -339,20 +339,6 @@ module.exports = (Router, dbctl) => {
 
             return next(false, info);
           });
-
-          // itterate ove DNSCACHE and in place update it.
-          Object.keys(global.DNSCACHE).forEach(v => {
-            let value = global.DNSCACHE[v];
-            let key   = v;
-
-            if(value.ip === info.ip) {
-              debug('start:ip_conflict:cache',
-                'resolve IP conflict for container owned by', key
-              )
-
-              value.ip = null
-            }
-          })
         })
         .fail(err => {
           debug('start:ip_conflict:err', err);
@@ -368,40 +354,18 @@ module.exports = (Router, dbctl) => {
         return res.error(500, err);
       }
 
-      if(!global.DNSCACHE) {
-        debug('start', 'WARNING: NO DNSCACHE ON GLOBAL');
-      } else if(!global.DNSCACHE[username]) {
-        global.DNSCACHE[username] = {
-          ip: null,
-          assignment: entity,
-          success: false
-        }
-      }
 
-      debug('start', 'updated DNSCACHE');
-      global.DNSCACHE[username].ip = 'http://'+info.ip
-      global.DNSCACHE[username].success = true;
 
-      let dump     = JSON.stringify(global.DNSCACHE);
-      let DNSCACHE = path.join(__dirname, '../..', './cache/dnscache.json')
-      fs.writeFile(DNSCACHE, dump, 'utf8', err => {
-        if(err) {
-          debug('start:cache', 'failed to write cache file...');
-        } else {
-          debug('start:cache', 'wrote DNSCACHE to cache dir');
-        }
-
-        return res.success({
-          status: 'UP',
-          id: info.id,
-          network: {
-            ip: info.ip
-          },
-          owner: username
-        });
+      return res.success({
+        status: 'UP',
+        id: info.id,
+        network: {
+          ip: info.ip
+        },
+        owner: username
       });
-    })
-  })
+    });
+  });
 
   /**
    * GET /mine/status

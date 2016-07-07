@@ -24,6 +24,7 @@ npm start
 * [x] Implement GET /user for user info.
 * [ ] Realtime status websocket/socket.io on /workspace.
 * [ ] Authentication on Workspaces via http-proxy. Cookie?
+* [ ] Have backend notify ide on ip collisions
 
 ## Testing
 

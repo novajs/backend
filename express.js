@@ -10,32 +10,18 @@
 
 const express   = require('express');
 const fs        = require('fs');
-const httpProxy = require('http-proxy');
 const async     = require('async');
 const path      = require('path');
-const mkdirp    = require('mkdirp');
 
-const BP      = require('body-parser');
-const cors    = require('cors');
+const BP        = require('body-parser');
+const cors      = require('cors');
+const responses = require('./lib/response.js');
+const cp        = require('cookie-parser');
 
-const debug   = require('debug')('express:stage');
-
-const Auth    = require('./lib/auth.js');
-
+// Express Master
 module.exports = (dbctl, log, stage) => {
   if(process.argv[2] === '--test-express') {
     throw 'ERROR'
-  }
-
-  mkdirp.sync('./cache');
-
-  let DNSCACHE = './cache/dnscache.json';
-  if(!fs.existsSync(DNSCACHE)) {
-    debug('init', 'DNSCACHE created.');
-    global.DNSCACHE = {};
-  } else {
-    debug('init', 'DNSCACHE loaded from ./cache');
-    global.DNSCACHE = require(DNSCACHE);
   }
 
   // load our config or die.
@@ -50,101 +36,15 @@ module.exports = (dbctl, log, stage) => {
 
   let app = express();
 
+
+  app.use(cp());
+
   // app.use(morgan('dev'));
   app.use(BP.json());
   app.use(cors());
   app.use(BP.urlencoded({ extended: true }));
 
-  app.use((req, res, next) => {
-    res.error = (status, message) => {
-      if(!message) {
-        message = status;
-        status = 200;
-      }
-
-      if(!message) {
-        return res.status(status).send();
-      }
-
-      return res.status(status).send({
-        success: false,
-        message: message
-      });
-    };
-
-    res.success = (data) => {
-      return res.send({
-        success: true,
-        data: data
-      })
-    };
-
-    return next();
-  });
-
-  let proxy;
-  let auth = new Auth(dbctl);
-  try {
-    proxy = httpProxy.createProxyServer({});
-  } catch(e) {
-    console.log(e);
-  }
-
-  /**
-   * Proxy to the workspace.
-   *
-   **/
-  app.use((req, res, next) => {
-    let name = req.hostname.split('.')[0];
-
-    if(req.hostname.split('.').length !== 3) {
-      return next();
-    }
-
-    let done = (CACHED_OBJ) => {
-      if(req.url === '/') {
-        // TO DO Authentication establish here.
-      }
-
-      return proxy.web(req, res, {
-        target: CACHED_OBJ.ip
-      }, () => {
-        return res.status(404).send('Workspace Not Available (Is it running?)')
-      });
-    }
-
-    if(!global.DNSCACHE[name]) {
-      auth.getUserObject(name)
-      .then(user => {
-        let O = user[0].value;
-
-        if(!O.docker) {
-          return res.error('Workspace hasn\'t been created for this user yet.');
-        }
-
-        let IP = O.docker.ip;
-
-        if(IP === null) {
-          throw 'Isn\'t built or was invalidated.'
-        }
-
-        // create a new object in the "dns" cache.
-        debug('proxy', name, '->', IP);
-        global.DNSCACHE[name] = {
-          ip: 'http://'+IP,
-          success: true
-        }
-
-        return done(global.DNSCACHE[name]);
-      })
-      .catch(() => {
-        global.DNSCACHE[name]
-        return res.error('Failed to Resolve Workspace');
-      })
-    } else {
-      return done(global.DNSCACHE[name]);
-    }
-  });
+  app.use(responses());
 
   log('middleware loaded')
 
