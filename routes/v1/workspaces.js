@@ -13,13 +13,20 @@ const async   = require('async');
 const debug   = require('debug')('route:workspaces');
 const Docker  = require('dockerode');
 const mkdirp  = require('mkdirp');
-const fs      = require('fs');
 const path    = require('path');
+const Redis   = require('ioredis');
 
 const Auth    = require('../../lib/auth.js');
 const Assignment = require('../../lib/assignment.js');
 
 console.log('STORAGE: ', global.STORAGE_DIR);
+
+
+// init redis
+let redis_string = process.env.REDIS_1_PORT;
+debug('redis', 'found redis on', redis_string);
+
+const redis = new Redis(redis_string.replace('tcp://', 'redis://'));
 
 module.exports = (Router, dbctl) => {
 
@@ -305,7 +312,10 @@ module.exports = (Router, dbctl) => {
 
         dbctl.search('users', 'docker.ip: "'+info.ip+'"')
         .then(results => {
-          if(results.body.count === 0) return next('ERR_IP_RESOLVE_CONFLICTS');
+          if(results.body.count === 0) {
+            debug('start:ip_conflict:error', results.body);
+            return next('ERR_IP_RESOLVE_CONFLICTS');
+          }
 
           let pointer = results.body.results;
 
@@ -344,6 +354,47 @@ module.exports = (Router, dbctl) => {
           debug('start:ip_conflict:err', err);
           return next(err);
         })
+      },
+
+      // publish to redis.
+      (info, next) => {
+        redis.set(username, JSON.stringify(info));
+
+        // clean up redis mismatche(s)
+        let stream = redis.scanStream();
+        stream.on('data', (resultKeys) => {
+          async.eachSeries(resultKeys, (name, n) => {
+            redis.get(name, (err, container) => {
+               debug(name, container);
+
+               try {
+                 container = JSON.parse(container);
+               } catch(e) {
+                 return n('ERR_REDIS_RECV_VALUE');
+               }
+
+               if(container.ip == info.ip && container.uid !== info.uid) {
+                 let newContainer = container;
+
+                 newContainer.ip = null;
+
+                 try {
+                   newContainer = JSON.stringify(newContainer);
+                 } catch(e) {
+                   return n('ERR_REDIS_INFORM_IDE_PROXY');
+                 }
+
+                 debug(name, 'ip conflict');
+                 redis.set(name, newContainer)
+               }
+
+               return next(false, info);
+             });
+          }, (e, info) => {
+            debug('redis:ip_conflicts', 'resolved all conflict(s)')
+            return next(e, info);
+          });
+        });
       }
     ], (err, info) => {
       if(err) {
@@ -353,8 +404,6 @@ module.exports = (Router, dbctl) => {
         }
         return res.error(500, err);
       }
-
-
 
       return res.success({
         status: 'UP',

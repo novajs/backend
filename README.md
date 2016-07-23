@@ -25,6 +25,7 @@ npm start
 * [ ] Realtime status websocket/socket.io on /workspace.
 * [ ] Authentication on Workspaces via http-proxy. Cookie?
 * [ ] Have backend notify ide on ip collisions
+* [ ] Make redis linking scalable.
 
 ## Testing
 

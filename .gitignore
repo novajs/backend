@@ -3,3 +3,4 @@ config/config.json
 junit
 cache
 workspaces
+*.log
