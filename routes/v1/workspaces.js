@@ -27,6 +27,7 @@ let redis_string = process.env.REDIS_1_PORT;
 debug('redis', 'found redis on', redis_string);
 
 const redis = new Redis(redis_string.replace('tcp://', 'redis://'));
+const pub   = new Redis(redis_string.replace('tcp://', 'redis://'));
 
 module.exports = (Router, dbctl) => {
 
@@ -358,7 +359,20 @@ module.exports = (Router, dbctl) => {
 
       // publish to redis.
       (info, next) => {
-        redis.set(username, JSON.stringify(info));
+        if(!info.username) {
+          info.username = username;
+        }
+
+        let info_str;
+        try {
+          info_str = JSON.stringify(info)
+        } catch(e) {
+          return debug('redis:strigify', 'failed to convert object to JSON');
+        }
+
+        // set it and pub the new information.
+        redis.set(username, info_str);
+        pub.publish('NewWorkspace', info_str)
 
         // clean up redis mismatche(s)
         let stream = redis.scanStream();
@@ -371,6 +385,10 @@ module.exports = (Router, dbctl) => {
                  container = JSON.parse(container);
                } catch(e) {
                  return n('ERR_REDIS_RECV_VALUE');
+               }
+
+               if(!container.username) {
+                 container.username = name;
                }
 
                if(container.ip == info.ip && container.uid !== info.uid) {
@@ -386,6 +404,7 @@ module.exports = (Router, dbctl) => {
 
                  debug(name, 'ip conflict');
                  redis.set(name, newContainer)
+                 pub.publish('WorkspaceConflict', newContainer);
                }
 
                return next(false, info);
