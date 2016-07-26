@@ -314,8 +314,8 @@ module.exports = (Router, dbctl) => {
         dbctl.search('users', 'docker.ip: "'+info.ip+'"')
         .then(results => {
           if(results.body.count === 0) {
-            debug('start:ip_conflict:error', results.body);
-            return next('ERR_IP_RESOLVE_CONFLICTS');
+            debug('start:ip_conflict', 'warning', 'body count was 0. This is odd.')
+            return next(); // doesn't exist yet?
           }
 
           let pointer = results.body.results;
@@ -342,7 +342,12 @@ module.exports = (Router, dbctl) => {
                 ip: null
               }
             })
-            .then(done).fail(done);
+            .then(() => {
+              return done();
+            }).fail((err) => {
+              debug('start:ip_conflic:db', 'err', err);
+              return done(err);
+            });
           }, e => {
             if(e) return next(e);
 
@@ -375,7 +380,7 @@ module.exports = (Router, dbctl) => {
         pub.publish('NewWorkspace', info_str)
 
         // clean up redis mismatche(s)
-        let stream = redis.scanStream();
+        let stream = pub.scanStream();
         stream.on('data', (resultKeys) => {
           async.eachSeries(resultKeys, (name, n) => {
             redis.get(name, (err, container) => {
@@ -391,7 +396,8 @@ module.exports = (Router, dbctl) => {
                  container.username = name;
                }
 
-               if(container.ip == info.ip && container.uid !== info.uid) {
+               debug('redis:ip_conflict', 'process', container);
+               if(container.ip === info.ip && container.uid !== info.uid) {
                  let newContainer = container;
 
                  newContainer.ip = null;
@@ -407,7 +413,7 @@ module.exports = (Router, dbctl) => {
                  pub.publish('WorkspaceConflict', newContainer);
                }
 
-               return next(false, info);
+               return n(false, info);
              });
           }, (e, info) => {
             debug('redis:ip_conflicts', 'resolved all conflict(s)')

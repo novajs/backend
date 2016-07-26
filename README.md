@@ -26,6 +26,7 @@ npm start
 * [ ] Authentication on Workspaces via http-proxy. Cookie?
 * [ ] Have backend notify ide on ip collisions
 * [ ] Make redis linking scalable.
+* [x] Redis use pub/sub to reduce load.
 
 ## Testing
 
