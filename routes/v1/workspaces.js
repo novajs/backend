@@ -10,24 +10,18 @@
 
 const express = require('express');
 const async   = require('async');
-const debug   = require('debug')('route:workspaces');
+const debug   = require('debug')('backend:route:workspaces');
 const Docker  = require('dockerode');
 const mkdirp  = require('mkdirp');
 const path    = require('path');
-const Redis   = require('ioredis');
 
-const Auth    = require('../../lib/auth.js');
+const Auth       = require('../../lib/auth.js');
 const Assignment = require('../../lib/assignment.js');
+const Redis      = require('../../lib/redis.js');
 
-console.log('STORAGE: ', global.STORAGE_DIR);
 
-
-// init redis
-let redis_string = process.env.REDIS_1_PORT;
-debug('redis', 'found redis on', redis_string);
-
-const redis = new Redis(redis_string.replace('tcp://', 'redis://'));
-const pub   = new Redis(redis_string.replace('tcp://', 'redis://'));
+const redis = Redis();
+const pub   = Redis();
 
 module.exports = (Router, dbctl) => {
 
@@ -212,7 +206,14 @@ module.exports = (Router, dbctl) => {
             })
           })
         })
-        .catch(next);
+        .catch(err => {
+          if(err !== 'NOT_INITIALIZED') {
+            return next(err);
+          }
+
+          // not created. OK
+          return next();
+        });
       },
 
       (next) => {
@@ -276,6 +277,7 @@ module.exports = (Router, dbctl) => {
             return next(false, {
               id:   ID,
               ip:   IP,
+              username: username,
               uid:  UID
             })
           }
@@ -291,11 +293,12 @@ module.exports = (Router, dbctl) => {
               docker: {
                 id: ID,
                 ip: IP,
+                username: username,
                 assignment: entity
               }
             })
             .then(done)
-            .fail(err => {
+            .catch(err => {
               debug('start:db', 'error', err);
               return next(err);
             })
@@ -307,47 +310,27 @@ module.exports = (Router, dbctl) => {
         });
       },
 
-      // handle all ip conflicts.
+      /**
+       * Handle all DB ip conflicts.
+       **/
       (info, next) => {
         debug('start:ip_conflict', 'look for', info.ip, 'excluding uid', info.uid)
 
-        dbctl.search('users', 'docker.ip: "'+info.ip+'"')
-        .then(results => {
-          if(results.body.count === 0) {
-            debug('start:ip_conflict', 'warning', 'body count was 0. This is odd.')
-            return next(); // doesn't exist yet?
-          }
-
-          let pointer = results.body.results;
-
+        dbctl.search('users', 'docker.ip', info.ip)
+        .then(pointer => {
           async.each(pointer, (w, done) => {
-            // if not object, invalid response, throw error.
-            if(typeof w !== 'object') throw 'ERR_INVALID_DB_RESPONSE'
-
             // if it's the same id as we just registered, skip
-            if(w.path.key === info.uid) return done();
+            if(w.key === info.uid) return done();
 
             // match the values or return
-            if(w.value.docker.ip !== info.ip) return done();
+            if(w.docker.ip !== info.ip) return done();
 
-            debug('start:ip_conflict:db',
-             'resolve IP conflict, cID:',
-             w.value.docker.id,
-             'key:',
-             w.path.key
-            );
-
-            dbctl.update('users', w.path.key, {
+            dbctl.update('users', w.key, {
               docker: {
                 ip: null
               }
             })
-            .then(() => {
-              return done();
-            }).fail((err) => {
-              debug('start:ip_conflic:db', 'err', err);
-              return done(err);
-            });
+            .then(() => {return done()}).catch(done);
           }, e => {
             if(e) return next(e);
 
@@ -356,13 +339,17 @@ module.exports = (Router, dbctl) => {
             return next(false, info);
           });
         })
-        .fail(err => {
+        .catch(err => {
+          if(err === 'CONDITIONS_NOT_MET') return next();
+
           debug('start:ip_conflict:err', err);
           return next(err);
         })
       },
 
-      // publish to redis.
+      /**
+       * Publish and modify redis.
+       **/
       (info, next) => {
         if(!info.username) {
           info.username = username;
@@ -381,45 +368,49 @@ module.exports = (Router, dbctl) => {
 
         // clean up redis mismatche(s)
         let stream = pub.scanStream();
+        let getpipe = redis.pipeline();
+
+        // stream add the keys into the pipeline.
         stream.on('data', (resultKeys) => {
-          async.eachSeries(resultKeys, (name, n) => {
-            redis.get(name, (err, container) => {
-               debug(name, container);
-
-               try {
-                 container = JSON.parse(container);
-               } catch(e) {
-                 return n('ERR_REDIS_RECV_VALUE');
-               }
-
-               if(!container.username) {
-                 container.username = name;
-               }
-
-               debug('redis:ip_conflict', 'process', container);
-               if(container.ip === info.ip && container.uid !== info.uid) {
-                 let newContainer = container;
-
-                 newContainer.ip = null;
-
-                 try {
-                   newContainer = JSON.stringify(newContainer);
-                 } catch(e) {
-                   return n('ERR_REDIS_INFORM_IDE_PROXY');
-                 }
-
-                 debug(name, 'ip conflict');
-                 redis.set(name, newContainer)
-                 pub.publish('WorkspaceConflict', newContainer);
-               }
-
-               return n(false, info);
-             });
-          }, (e, info) => {
-            debug('redis:ip_conflicts', 'resolved all conflict(s)')
-            return next(e, info);
-          });
+          for(let i = 0; i < resultKeys.length; i++) {
+            debug('add user to pipe', resultKeys[i]);
+            getpipe.get(resultKeys[i]);
+          }
         });
+
+        // execute the pipeline after it's finished streaming the keys.
+        stream.on('end', () => {
+          let setpipe = redis.pipeline()
+          getpipe.exec((err, res) => {
+            res.forEach((namecontainer) => {
+              let container = namecontainer[1];
+
+              try {
+                container = JSON.parse(container);
+              } catch(e) {
+                debug('redis:invalid_res:ip_conflict', 'received invalid JSON response.');
+                console.log('resp', container);
+                return;
+              }
+
+              debug('redis:ip_conflict', 'process', container);
+              if(container.ip === info.ip && container.uid !== info.uid) {
+                let newContainer = container;
+
+                // invalidate the container.
+                newContainer.ip = null;
+                newContainer = JSON.stringify(newContainer);
+
+                setpipe.set(container.username, newContainer)
+                pub.publish('WorkspaceConflict', newContainer);
+              }
+            });
+
+            setpipe.exec((err) => {
+              return next(err, info);
+            })
+          });
+        })
       }
     ], (err, info) => {
       if(err) {
@@ -436,7 +427,7 @@ module.exports = (Router, dbctl) => {
         network: {
           ip: info.ip
         },
-        owner: username
+        username: username
       });
     });
   });

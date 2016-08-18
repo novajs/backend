@@ -10,7 +10,7 @@
 
 const async = require('async');
 const uuid  = require('node-uuid');
-const debug = require('debug')('route:users');
+const debug = require('debug')('backend:route:users');
 
 module.exports = (Router, dbctl) => {
   const Auth = require('../../lib/auth.js');
@@ -81,6 +81,7 @@ module.exports = (Router, dbctl) => {
         dbctl.post('users', {
           username: REQ.username,
           email:    REQ.email,
+          display_name: REQ.display_name,
           password: hash,
           api: {
             public: PUBLIC,
@@ -216,7 +217,7 @@ module.exports = (Router, dbctl) => {
    * Get users.
    **/
   Router.get('/list', (req, res) => {
-    return dbctl.search('users', '*')
+    return dbctl.all('users')
     .fail(() => {
       return res.error(501);
     })

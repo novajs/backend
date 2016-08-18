@@ -36,13 +36,12 @@ module.exports = (dbctl, log, stage) => {
 
   let app = express();
 
-
-  app.use(cp());
-
-  // app.use(morgan('dev'));
+  app.use(cp({
+    origin: 'http://tritonjs.com'
+  }));
   app.use(BP.json());
-  app.use(cors());
   app.use(BP.urlencoded({ extended: true }));
+  app.use(cors());
 
   app.use(responses());
 

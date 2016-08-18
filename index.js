@@ -40,25 +40,14 @@ let init = () => {
     sub: 'INIT'
   });
 
-  try {
-    require('./express.js')(dbctl, function() {
-      let args = Array.prototype.slice.call(arguments, 0);
-      args[0]  = 'main: '+stage.Sub+ ' stage '+ stage.Stage + ': ' + args[0];
-      console.log.apply(console, args);
-    }, stage);
-  } catch(err) {
-    if(err === 'ERROR') {
-      process.exit(2);
-    }
+  require('./lib/docker.js')(container => {
+    global.container = container;
+  })
 
-    console.log(err);
-
-    stage.emit('failed', {
-      stage: stage.Stage,
-      sub: stage.Sub,
-      name: stage.Name
-    });
-  }
+  require('./express.js')(dbctl, (...args) => {
+    args.unshift('main: '+stage.Sub+ ' stage '+ stage.Stage + ': ');
+    console.log.apply(console, args);
+  }, stage);
 }
 
 return init();
