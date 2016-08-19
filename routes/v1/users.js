@@ -138,7 +138,7 @@ module.exports = (Router, dbctl) => {
 
     // function the keyProvider for SSO
     let keyProvider = (result, done) => {
-      let user = result[0].value;
+      let user = result;
 
       let keys = {
         p: user.api.public,

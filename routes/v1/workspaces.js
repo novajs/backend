@@ -318,12 +318,19 @@ module.exports = (Router, dbctl) => {
 
         dbctl.search('users', 'docker.ip', info.ip)
         .then(pointer => {
+          debug('users', 'fetched pointer');
+
           async.each(pointer, (w, done) => {
             // if it's the same id as we just registered, skip
-            if(w.key === info.uid) return done();
-
+            if(w.key === info.uid) {
+              debug('users', 'key is same as uid');
+              return done();
+            }
             // match the values or return
-            if(w.docker.ip !== info.ip) return done();
+            if(w.docker.ip !== info.ip) {
+              debug('users', 'fetched ip doesn\'t match ip');
+              return done();
+            }
 
             dbctl.update('users', w.key, {
               docker: {
@@ -340,7 +347,8 @@ module.exports = (Router, dbctl) => {
           });
         })
         .catch(err => {
-          if(err === 'CONDITIONS_NOT_MET') return next();
+          debug('users', 'err', err);
+          if(err === 'CONDITIONS_NOT_MET') return next(false, info);
 
           debug('start:ip_conflict:err', err);
           return next(err);
@@ -351,6 +359,7 @@ module.exports = (Router, dbctl) => {
        * Publish and modify redis.
        **/
       (info, next) => {
+        debug('redis', 'begin')
         if(!info.username) {
           info.username = username;
         }
@@ -413,6 +422,7 @@ module.exports = (Router, dbctl) => {
         })
       }
     ], (err, info) => {
+      debug('workspaces', 'done')
       if(err) {
         if(container) {
           debug('start', 'ERROR stop container and remove');
