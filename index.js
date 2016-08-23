@@ -50,4 +50,6 @@ let init = () => {
   }, stage);
 }
 
-return init();
+dbctl.init(() => {
+  init();
+})

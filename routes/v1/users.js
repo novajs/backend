@@ -66,6 +66,7 @@ module.exports = (Router, dbctl) => {
           return next(false, result.toString('hex'));
         })
         .catch(err => {
+          debug('auth:hash:err', err.stack)
           debug('auth:hash', 'scrypt hash generation failed');
           return next(err);
         });
@@ -92,7 +93,7 @@ module.exports = (Router, dbctl) => {
             debug('auth:db', 'successfully added to the database');
             return next();
           })
-          .fail(err => {
+          .catch(err => {
             debug('auth:db', 'error:', err);
             return next(err);
           })

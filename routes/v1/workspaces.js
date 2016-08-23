@@ -316,34 +316,38 @@ module.exports = (Router, dbctl) => {
       (info, next) => {
         debug('start:ip_conflict', 'look for', info.ip, 'excluding uid', info.uid)
 
-        dbctl.search('users', 'docker.ip', info.ip)
-        .then(pointer => {
-          debug('users', 'fetched pointer');
+        dbctl.search('users', 'docker.ip', info.ip, true)
+        .then(cursor => {
+          cursor.all().then(vals => {
+            async.each(vals, (w, done) => {
+              w = dbctl._transform(w);
 
-          async.each(pointer, (w, done) => {
-            // if it's the same id as we just registered, skip
-            if(w.key === info.uid) {
-              debug('users', 'key is same as uid');
-              return done();
-            }
-            // match the values or return
-            if(w.docker.ip !== info.ip) {
-              debug('users', 'fetched ip doesn\'t match ip');
-              return done();
-            }
+              debug('users', 'process', w);
 
-            dbctl.update('users', w.key, {
-              docker: {
-                ip: null
+              // if it's the same id as we just registered, skip
+              if(w.key === info.uid) {
+                debug('users', 'key is same as uid');
+                return done();
               }
-            })
-            .then(() => {return done()}).catch(done);
-          }, e => {
-            if(e) return next(e);
+              // match the values or return
+              if(w.docker.ip !== info.ip) {
+                debug('users', 'fetched ip doesn\'t match ip');
+                return done();
+              }
 
-            debug('start:ip_conflict', 'resolved all conflict(s)')
+              dbctl.update('users', w.key, {
+                docker: {
+                  ip: null
+                }
+              })
+              .then(() => {return done()}).catch(done);
+            }, e => {
+              if(e) return next(e);
 
-            return next(false, info);
+              debug('start:ip_conflict', 'resolved all conflict(s)')
+
+              return next(false, info);
+            });
           });
         })
         .catch(err => {
@@ -360,6 +364,7 @@ module.exports = (Router, dbctl) => {
        **/
       (info, next) => {
         debug('redis', 'begin')
+        debug('redis', 'info is -> ', info)
         if(!info.username) {
           info.username = username;
         }
