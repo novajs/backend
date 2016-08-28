@@ -79,6 +79,22 @@ module.exports = (Router, dbctl) => {
       })
   })
 
+  Router.post('/finished', auth.requireAuthentication(), (req, res) => {
+    let aid = req.body.id;
+
+    if(!aid) return res.error('INVALID_INPUT');
+
+    console.log(req.user)
+
+    assignments.complete(req.user, aid)
+      .then(data => {
+        return res.success(data);
+      })
+      .catch(err => {
+        return res.error(err);
+      })
+  })
+
   Router.post('/update', auth.requireAuthentication(), (req, res) => {
     let username = req.user.username;
 
