@@ -1,16 +1,18 @@
 {
   "db": {
-    "name": "your-orchestrate-db-name-here",
-    "host": "api.ctl-uc1-a.orchestrate.io",
-    "username": null,
-    "password": null,
-    "apikey": "yourapikey"
+    "host": "127.0.0.1",
+    "port": 8529,
+    "name": "triton",
+    "user": "root",
+    "password": "password",
+
+    "collections": [
+      "users",
+      "assignments"
+    ]
   },
   "server": {
-    "port": 8000,
+    "port": 8080,
     "api_version": "v1"
-  },
-  "proxy": {
-    "template": "http://workspace-{{name}}.wrk"
   }
 }

@@ -25,14 +25,14 @@
   "dependencies": {
     "aqb": "^2.1.0",
     "arangojs": "^5.0.3",
-    "async": "^2.0.0-rc.2",
-    "body-parser": "^1.15.1",
+    "async": "^2.0.1",
+    "body-parser": "^1.15.2",
     "cookie-parser": "^1.4.3",
-    "cors": "^2.7.1",
-    "dockerode": "^2.2.10",
-    "express": "^4.13.4",
+    "cors": "^2.8.0",
+    "dockerode": "^2.3.0",
+    "express": "^4.14.0",
     "hiredis": "^0.5.0",
-    "http-proxy": "^1.13.3",
+    "http-proxy": "^1.14.0",
     "ioredis": "^2.3.0",
     "mkdirp": "^0.5.1",
     "node-uuid": "^1.4.7",
@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "gulp": "^3.9.1",
-    "mocha": "^2.4.5",
-    "mocha-eslint": "^2.0.2"
+    "mocha": "^3.0.2",
+    "mocha-eslint": "^3.0.1"
   }
 }

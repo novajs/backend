@@ -59,7 +59,7 @@ module.exports = (dbctl, log, stage) => {
         }
 
         // for each route, mount on point.
-        async.each(list, function(route, next) {
+        async.each(list, (route, next) => {
           let Path  = path.join(ROUTES, route);
           let name  = path.parse(route).name;
           let mount = path.join('/', API_VERSION, '/', name)

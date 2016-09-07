@@ -23,10 +23,11 @@ npm start
 * [x] Implement Email as Username on /user
 * [x] Implement GET /user for user info.
 * [ ] Realtime status websocket/socket.io on /workspace.
-* [ ] Have backend notify ide on ip collisions
+* [x] Have backend notify ide on ip collisions
 * [ ] Make redis linking scalable.
 * [x] Redis use pub/sub to reduce load.
-* [ ] Use a DB other than Orchestrate for open source maximum.
+* [x] Use a DB other than Orchestrate for open source maximum.
+* [ ] Implement Admin Roles
 
 ## Testing
 

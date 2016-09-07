@@ -36,7 +36,7 @@ module.exports = (Router, dbctl) => {
 
       return res.success(cache);
     })
-    .fail(() => {
+    .catch(() => {
       return res.error('INTERNAL_ASSIGNMENT_DB_SEARCH_FAILED');
     })
   })
