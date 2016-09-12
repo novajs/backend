@@ -8,9 +8,12 @@
 
 'use strict';
 
-const async = require('async');
-const uuid  = require('node-uuid');
-const debug = require('debug')('backend:route:users');
+const async    = require('async');
+const uuid     = require('node-uuid');
+const debug    = require('debug')('backend:route:users');
+const path     = require('path');
+const fs       = require('fs');
+const archiver = require('archiver');
 
 module.exports = (Router, dbctl) => {
   const Auth = require('../../lib/auth.js');
@@ -240,6 +243,31 @@ module.exports = (Router, dbctl) => {
     });
   });
 
+  Router.get('/files/:assignment', auth.requireAuthentication(), (req, res) => {
+    let user = req.user;
+
+    let dirpath = path.join(__dirname, '../../workspaces/', user.username, req.params.assignment);
+    if(!fs.existsSync(dirpath)) {
+      return res.error('ASSIGNMENT_NOT_STARTED');
+    }
+
+    const Files = fs.readdirSync(dirpath);
+    if(!Files.length) return res.error('EMPTY_ASSIGNMENT');
+
+    console.log(dirpath);
+
+    res.writeHead(200, {
+      'Content-Type': 'application/zip',
+      'Content-disposition': 'attachment; filename='+req.params.assignment+'.zip'
+    })
+
+
+    let archive = archiver('zip')
+    archive.pipe(res)
+    archive.directory(dirpath, '/')
+    archive.finalize();
+  })
+
   /**
    * POST /users/update
    *
@@ -260,8 +288,6 @@ module.exports = (Router, dbctl) => {
     delete USER.docker;
     delete USER.api;
     delete USER.password;
-
-    // TODO: Validate User Credentials Here.
     delete REQ.password;
 
     console.log('GOT', REQ);

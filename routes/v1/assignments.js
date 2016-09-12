@@ -26,8 +26,8 @@ module.exports = (Router, dbctl) => {
     .then(results => {
       let cache = [];
 
-      results.body.results.forEach(a => {
-        cache.push(a.value);
+      results.forEach(a => {
+        cache.push(a.data_wrapper);
       });
 
       cache.sort(function(a,b){
@@ -36,7 +36,8 @@ module.exports = (Router, dbctl) => {
 
       return res.success(cache);
     })
-    .catch(() => {
+    .catch(err => {
+      console.log('err:', err);
       return res.error('INTERNAL_ASSIGNMENT_DB_SEARCH_FAILED');
     })
   })
