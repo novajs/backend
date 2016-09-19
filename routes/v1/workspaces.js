@@ -19,6 +19,8 @@ const Auth       = require('../../lib/auth.js');
 const Assignment = require('../../lib/assignment.js');
 const Redis      = require('../../lib/redis.js');
 
+const CONFIG = require('../../config/config.json');
+
 
 const redis = Redis();
 const pub   = Redis();
@@ -153,9 +155,10 @@ module.exports = (Router, dbctl) => {
       return res.error(405, 'INVALID_INPUT');
     }
 
-    let WORKING_DIR = path.join(global.STORAGE_DIR, username, entity);
+    let WORKING_DIR = path.join(CONFIG.docker.workspaces, username, entity);
 
     debug('start', 'resolved working dir to:', WORKING_DIR);
+    debug('user finished assignments', req.user.assignments);
 
     if(!entity) {
       return res.error('INVALID_NO_ASSINGMENT');
@@ -178,6 +181,20 @@ module.exports = (Router, dbctl) => {
           debug('start:assignmentValidCheck', 'error: ', err);
           return next(err);
         })
+      },
+
+      (next) => {
+        if(!req.user.assignments) {
+          return next();
+        }
+
+        if(typeof req.user.assignments !== 'object') {
+          return next();
+        }
+
+        if(req.user.assignments[entity].status === 'finished') {
+          return res.error('ASSIGNMENT_FINISHED');
+        }
       },
 
       // check if the container already exists
@@ -218,15 +235,11 @@ module.exports = (Router, dbctl) => {
 
       (next) => {
         docker.createContainer({
-          Image: 'cloud9-docker',
+          Image: CONFIG.docker.image,
           ExposedPorts: {
             '80/tcp': {
               HostIp: '0.0.0.0',
               HostPort: '80'
-            },
-            '443/tcp': {
-              HostIp: '0.0.0.0',
-              HostPort: '443'
             }
           },
           Networks: {
@@ -239,6 +252,7 @@ module.exports = (Router, dbctl) => {
             Binds: [WORKING_DIR+':/workspace']
           },
           Env: [
+            'BACKEND_1_PORT='+CONFIG.docker.backend_advertise,
             'ASSIGNMENTID='+entity,
             'USERNAME='+username
           ]
@@ -367,6 +381,11 @@ module.exports = (Router, dbctl) => {
         debug('redis', 'info is -> ', info)
         if(!info.username) {
           info.username = username;
+        }
+
+        if(!info.auth) {
+          debug('user', req.user.apikey);
+          info.auth = req.user.apikey;
         }
 
         let info_str;

@@ -36,9 +36,7 @@ module.exports = (dbctl, log, stage) => {
 
   let app = express();
 
-  app.use(cp({
-    origin: 'http://tritonjs.com'
-  }));
+  app.use(cp());
   app.use(BP.json());
   app.use(BP.urlencoded({ extended: true }));
   app.use(cors());
@@ -57,6 +55,15 @@ module.exports = (dbctl, log, stage) => {
         if(err) {
           return next(err);
         }
+
+        app.all('/', (req, res) => {
+          return res.send({
+            success: true,
+            data: {
+              versions: [ 'v1' ]
+            }
+          })
+        })
 
         // for each route, mount on point.
         async.each(list, (route, next) => {
@@ -98,6 +105,15 @@ module.exports = (dbctl, log, stage) => {
           return next();
         });
       })
+
+      app.get('/', (req, res) => {
+        return res.send({
+          success: true,
+          data: {
+            versions: [ 'v1' ]
+          }
+        })
+      });
 
       app.use(function(err, req, res, next) {
         console.error(err);

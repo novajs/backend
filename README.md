@@ -24,7 +24,7 @@ npm start
 * [x] Implement GET /user for user info.
 * [ ] Realtime status websocket/socket.io on /workspace.
 * [x] Have backend notify ide on ip collisions
-* [ ] Make redis linking scalable.
+* [x] Make redis linking scalable.
 * [x] Redis use pub/sub to reduce load.
 * [x] Use a DB other than Orchestrate for open source maximum.
 * [ ] Implement Admin Roles

@@ -25,6 +25,7 @@ module.exports = (Router, dbctl) => {
    * Get authenticated users info.
    **/
   Router.get('/', auth.requireAuthentication(), (req, res) => {
+    debug('user', 'dump')
     let USER = req.user;
 
     // remove secrets.
@@ -61,6 +62,38 @@ module.exports = (Router, dbctl) => {
     REQ.username = REQ.username.toLowerCase();
 
     async.waterfall([
+      // validate the input
+      (next) => {
+        if(/\W/.test(REQ.username)) {
+          debug('new', 'invalid username')
+          return next('INVALID_USERNAME')
+        }
+
+        debug('new', 'username valid')
+        return next();
+      },
+
+      // Check if the user already exists.
+      (next) => {
+        dbctl.searchClient('users', [
+          ['username', '===', REQ.username]
+        ])
+        .catch(err => {
+          if(err === 'CONDITIONS_NOT_MET') {
+            return next();
+          }
+
+          return next(err);
+        })
+        .then(res => {
+          if(!res) { // user not exist, likely.
+            return next();
+          }
+
+          return next('USER_EXISTS');
+        })
+      },
+
       // Get the SCRYPT hash.
       (next) => {
         auth.generateHash(REQ.password)
@@ -87,6 +120,7 @@ module.exports = (Router, dbctl) => {
           email:    REQ.email,
           display_name: REQ.display_name,
           password: hash,
+          role: 'user',
           api: {
             public: PUBLIC,
             secret: SECRET
@@ -103,12 +137,42 @@ module.exports = (Router, dbctl) => {
       }
     ], err => {
       if(err) {
-        return res.error(501, 'FAILED_TO_CREATE_USER');
+        if(typeof err == 'string') {
+          return  res.error(200, err);
+        }
+        return res.error(500, 'FAILED_TO_CREATE_USER');
       }
 
       return res.success('USER_CREATED');
     });
   });
+
+  Router.post('/exists', (req, res) => {
+    const REQ = req.body;
+    if(!REQ.username) {
+      return res.error('INVALID_INPUT');
+    }
+
+    REQ.username = REQ.username.toLowerCase();
+
+    dbctl.searchClient('users', [
+      ['username', '===', REQ.username]
+    ])
+    .catch(err => {
+      return res.success(false);
+    })
+    .then(data => {
+      if(!data) { // user not exist, likely.
+        debug('exists', REQ.username, 'not exist');
+        return res.success(false);
+      }
+
+      console.log(data);
+
+      debug('exists', REQ.username, 'exists')
+      return res.success(true);
+    })
+  })
 
   /**
    * POST /users/delete
@@ -120,7 +184,7 @@ module.exports = (Router, dbctl) => {
     .then(() => {
       return res.success('USER_DELETED');
     })
-    .fail(() => {
+    .catch(() => {
       return res.error('ERR_FAILED_TO_REMOVE_USER');
     });
   });
@@ -147,12 +211,16 @@ module.exports = (Router, dbctl) => {
       let keys = {
         p: user.api.public,
         passphrase: user.password,
-        s: user.api.secret
+        s: user.api.secret,
+        u: user.username,
+        r: user.role
       }
 
       return done(false, keys)
     };
 
+    if(REQ.username) REQ.username = REQ.username.toLowerCase();
+    if(REQ.email) REQ.email = REQ.email.toLowerCase();
     async.waterfall([
       // Find the User by Username.
       (next) => {
@@ -210,6 +278,8 @@ module.exports = (Router, dbctl) => {
       return res.success({
         public: key.p,
         secret: key.s,
+        role:   key.r,
+        username: key.u,
         method: REQ.username ? 'username' : 'email'
       })
     });
@@ -221,24 +291,23 @@ module.exports = (Router, dbctl) => {
    * Get users.
    **/
   Router.get('/list', (req, res) => {
+    debug('list', 'all')
     return dbctl.all('users')
-    .fail(() => {
-      return res.error(501);
+    .catch(() => {
+      return res.error('FAILED_TO_DETERMINE');
     })
     .then(results => {
       let users = [];
 
-      results.body.results.forEach(user => {
-        let data = user.value;
+      results.forEach(user => {
+        let data = user.data_wrapper;
 
         // push a new object to avoid using delete.
         users.push({
           display_name: data.display_name,
-          username: data.username,
-          email: data.email
+          username: data.username
         });
       });
-
       return res.success(users);
     });
   });
