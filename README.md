@@ -32,7 +32,7 @@ npm start
 ## Testing
 
 ```bash
-npm install --dev
+npm install
 
 # If you don't have mocha already
 sudo npm install -g mocha
