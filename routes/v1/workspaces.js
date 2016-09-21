@@ -243,7 +243,7 @@ module.exports = (Router, dbctl) => {
             }
           },
           Labels: {
-            'io.rancher.container.network': true,
+            'io.rancher.container.network': "true",
             'com.triton.workspace.owner': username
           },
           Networks: {
