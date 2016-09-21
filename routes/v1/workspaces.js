@@ -261,6 +261,9 @@ module.exports = (Router, dbctl) => {
             'USERNAME='+username
           ]
         }, (err, cont) => {
+          if(err) {
+            debug('start', 'failed to create container', err)
+          }
           debug('start', 'container created.');
           container = cont;
           return next(err);
@@ -271,6 +274,7 @@ module.exports = (Router, dbctl) => {
       (next) => {
         debug('start', 'starting container');
         return container.start(err => {
+          debug('start', 'failed', err);
           return next(err);
         });
       },
