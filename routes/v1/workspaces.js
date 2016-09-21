@@ -242,6 +242,10 @@ module.exports = (Router, dbctl) => {
               HostPort: '80'
             }
           },
+          Labels: {
+            'io.rancher.container.network': true,
+            'com.triton.workspace.owner': username
+          }
           Networks: {
             bridge: {
               Gateway: '172.17.0.1',
