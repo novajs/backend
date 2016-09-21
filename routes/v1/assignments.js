@@ -31,7 +31,7 @@ module.exports = (Router, dbctl) => {
       });
 
       cache.sort(function(a,b){
-        return new Date(b.date) - new Date(a.date);
+        return a - b;
       });
 
       return res.success(cache);
