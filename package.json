@@ -39,6 +39,7 @@
     "mkdirp": "^0.5.1",
     "node-uuid": "^1.4.7",
     "orchestrate": "^0.8.0",
+    "request": "^2.75.0",
     "scrypt": "^6.0.3"
   },
   "devDependencies": {

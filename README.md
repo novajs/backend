@@ -29,6 +29,10 @@ npm start
 * [x] Use a DB other than Orchestrate for open source maximum.
 * [ ] Implement Admin Roles
 
+## Triton Specific TODO
+
+* [ ] Implement method of using NFS w/o manual mount.
+
 ## Testing
 
 ```bash

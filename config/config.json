@@ -5,19 +5,19 @@
     "name": "triton",
     "user": "root",
     "password": "Q2w3YEpr84U955sd",
-    
+
     "collections": [
       "users",
       "assignments"
     ]
   },
-  "docker": {
-    "image": "repo.tritonjs.com:5000/c9.io",
-    "backend_advertise": "https://api.tritonjs.com:80",
-    "workspaces": "/userfiles"
+  "workspace": {
+    "ip": "<env>"
   },
   "server": {
     "port": 80,
     "api_version": "v1"
-  }
+  },
+  "debug": true,
+  "colors": true
 }

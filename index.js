@@ -8,6 +8,25 @@
 
 'use strict';
 
+// load our config or die.
+let config;
+try {
+  config  = require('./config/config.json')
+} catch(e) {
+  console.log('Error:', 'no config found. (./config/config.json)');
+  console.log('Stack Trace:', e);
+  process.exit(1)
+}
+
+if(config.debug === undefined || config.debug === true) {
+  process.env.DEBUG = 'backend:*'
+  process.env.TERM = 'xterm'
+}
+
+if(config.colors) {
+  process.env.DEBUG_COLORS = '1'
+}
+
 const path    = require('path');
 const mkdirp  = require('mkdirp');
 
@@ -19,16 +38,6 @@ const DB      = require('./lib/db.js');
 global.STORAGE_DIR = path.join(__dirname, './workspaces');
 
 mkdirp.sync(global.STORAGE_DIR);
-
-// load our config or die.
-let config;
-try {
-  config  = require('./config/config.json')
-} catch(e) {
-  console.log('Error:', 'no config found. (./config/config.json)');
-  console.log('Stack Trace:', e);
-  process.exit(1)
-}
 
 // template to test it.
 let dbctl = new DB(config);

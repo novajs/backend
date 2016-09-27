@@ -1,8 +1,7 @@
-FROM mhart/alpine-node:6.3.0
+FROM mhart/alpine-node:latest
 
 # Apline specific.
-RUN apk add --update --no-cache make gcc g++ python
-RUN apk add bash git
+RUN apk add --update --no-cache make gcc g++ python bash git
 
 RUN npm install -g pm2
 WORKDIR /backend
@@ -16,12 +15,7 @@ ADD . /backend
 RUN npm install
 RUN chmod +x ./serviceinit.sh
 
-# Environment variables
-ENV DEBUG backend:*,assignment:*
-ENV DEBUG_COLORS 1
-ENV TERM xterm
-
-
+# expose port 80
 EXPOSE 80
 
 CMD ["./serviceinit.sh"]
