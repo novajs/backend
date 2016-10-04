@@ -290,11 +290,11 @@ module.exports = (Router, dbctl) => {
    *
    * Get users.
    **/
-  Router.get('/list', (req, res) => {
+  Router.get('/list', auth.requireAuthentication(), (req, res) => {
     if(!req.user.role === 'admin') {
       return res.error('INVALID_PERMISSIONS');
     }
-    
+
     debug('list', 'all')
     return dbctl.all('users')
     .catch(() => {
@@ -310,6 +310,7 @@ module.exports = (Router, dbctl) => {
         users.push({
           display_name: data.display_name,
           email: data.email,
+          role: data.role,
           id: data.id,
           username: data.username
         });
