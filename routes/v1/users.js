@@ -311,7 +311,7 @@ module.exports = (Router, dbctl) => {
           display_name: data.display_name,
           email: data.email,
           role: data.role,
-          id: data.key,
+          id: user.key,
           username: data.username
         });
       });
