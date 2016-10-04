@@ -291,6 +291,10 @@ module.exports = (Router, dbctl) => {
    * Get users.
    **/
   Router.get('/list', (req, res) => {
+    if(!req.user.role === 'admin') {
+      return res.error('INVALID_PERMISSIONS');
+    }
+    
     debug('list', 'all')
     return dbctl.all('users')
     .catch(() => {
@@ -305,6 +309,8 @@ module.exports = (Router, dbctl) => {
         // push a new object to avoid using delete.
         users.push({
           display_name: data.display_name,
+          email: data.email,
+          id: data.id,
           username: data.username
         });
       });
