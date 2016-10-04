@@ -9,7 +9,9 @@ const lint = require('mocha-eslint');
 // matches a glob pattern
 const paths = [
   'index.js',
-  'express.js'
+  'express.js',
+  'lib/*.js',
+  'routes/v1/*.js'
 ];
 
 // Specify style of output

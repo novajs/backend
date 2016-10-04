@@ -385,5 +385,12 @@ module.exports = (Router, dbctl) => {
     })
   })
 
+  /**
+   * Get user Role.
+   **/
+  Router.get('/role', auth.requireAuthentication(), (req, res) => {
+    return res.success(req.user.role);
+  })
+
   return Router;
 }
