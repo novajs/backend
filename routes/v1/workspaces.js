@@ -65,6 +65,32 @@ module.exports = (Router, dbctl) => {
     })
   })
 
+  Router.post('/update', (req, res) => {
+    let workspace_ip = 'http://'+CONFIG.workspace.ip;
+    if(CONFIG.workspace.ip == '<env>') {
+
+      let WORKSPACE = process.env.WORKSPACE_1_PORT || process.env.WORKSPACE_PORT;
+      if(WORKSPACE) {
+        let Workspace = url.parse(WORKSPACE);
+
+        debug('init', 'using DNS resolving');
+        workspace_ip = 'http://'+Workspace.hostname+':'+Workspace.port;
+      } else {
+        debug('init', 'told to use docker but failed to determine IP');
+        return next('INTERNAL_SYS_WORKSPACE_EVAL_ERR');
+      }
+    }
+
+    debug('workspace', 'POST', workspace_ip)
+
+    request({
+      method: 'POST',
+      uri: workspace_ip.replace(/\/$/g, '')+'/updateImage'
+    }, (err, resp, body) => {
+      return res.send(body);
+    })
+  })
+
   Router.post('/heartbeat', auth.requireAuthentication(), (req, res) => {
     // delegate to a workspace container
     let workspace_ip = 'http://'+CONFIG.workspace.ip;
