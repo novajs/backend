@@ -39,7 +39,15 @@ module.exports = (dbctl, log, stage) => {
   app.use(cp());
   app.use(BP.json());
   app.use(BP.urlencoded({ extended: true }));
-  app.use(cors());
+
+  var whitelist = ['https://ide.tritonjs.com', 'https://tritonjs.com', 'https://game.tritonjs.com'];
+  var corsOptions = {
+    origin: function(origin, callback){
+      var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
+      callback(originIsWhitelisted ? null : 'Bad Request', originIsWhitelisted);
+    }
+  };
+  app.use(cors(corsOptions));
 
   app.use(responses());
 
