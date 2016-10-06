@@ -45,7 +45,8 @@ module.exports = (dbctl, log, stage) => {
     origin: function(origin, callback){
       var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
       callback(originIsWhitelisted ? null : 'Bad Request', originIsWhitelisted);
-    }
+    },
+    credentials: true
   };
   app.use(cors(corsOptions));
 
