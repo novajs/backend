@@ -54,7 +54,7 @@ module.exports = (Router, dbctl) => {
 
     request({
       method: 'POST',
-      uri: workspace_ip.replace(/\/$/g, '')+'/',
+      uri: workspace_ip.replace(/\/$/g, '')+'/post',
       body: {
         auth: req.body.auth,
         ip: req.body.ip
