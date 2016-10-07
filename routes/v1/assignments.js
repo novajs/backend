@@ -16,6 +16,8 @@ module.exports = (Router, dbctl) => {
   let auth        = new Auth(dbctl);
   let assignments = new Assignment(dbctl);
 
+  Router.use(require('../../lib/response.js')())
+
   Router.get('/', (req, res) => {
     return res.send({
       error: 'invalid_route'
