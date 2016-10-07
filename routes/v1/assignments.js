@@ -11,6 +11,7 @@
 module.exports = (Router, dbctl) => {
   const Auth = require('../../lib/auth.js');
   const Assignment = require('../../lib/assignment.js');
+  const debug      = require('debug')('backend:route:assignment');
 
   let auth        = new Auth(dbctl);
   let assignments = new Assignment(dbctl);
@@ -24,6 +25,7 @@ module.exports = (Router, dbctl) => {
   Router.get('/list', (req, res) => {
     assignments.list()
     .then(results => {
+      debug('list', 'result', results);
       let cache = [];
 
       results.forEach(a => {
@@ -37,7 +39,7 @@ module.exports = (Router, dbctl) => {
       return res.success(cache);
     })
     .catch(err => {
-      console.log('err:', err);
+      debug('list:err', err);
       return res.error('INTERNAL_ASSIGNMENT_DB_SEARCH_FAILED');
     })
   })
