@@ -21,7 +21,7 @@ const Auth       = require('../../lib/auth.js');
 const Assignment = require('../../lib/assignment.js');
 const Redis      = require('../../lib/redis.js');
 
-const CONFIG = require('../../config/config.json');
+const CONFIG = require('../../lib/config.js');
 
 
 const redis = Redis();

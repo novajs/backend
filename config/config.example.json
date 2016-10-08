@@ -1,18 +1,27 @@
 {
   "db": {
-    "host": "127.0.0.1",
+    "host": "<env>",
     "port": 8529,
     "name": "triton",
     "user": "root",
-    "password": "password",
+    "password": "",
 
     "collections": [
       "users",
       "assignments"
     ]
   },
+  "workspace": {
+    "ip": "<env>"
+  },
+  "sentry": {
+    "enabled": true,
+    "DSN": "https://<DSN>@sentry.tritonjs.com/1"
+  },
   "server": {
-    "port": 8080,
+    "port": 80,
     "api_version": "v1"
-  }
+  },
+  "debug": true,
+  "colors": true
 }

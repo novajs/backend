@@ -17,6 +17,12 @@ const BP        = require('body-parser');
 const cors      = require('cors');
 const responses = require('./lib/response.js');
 const cp        = require('cookie-parser');
+const raven     = require('raven');
+
+const CONFIG    = require('./lib/config.js');
+
+let client = new raven.Client(CONFIG.sentry.DSN);
+client.patchGlobal();
 
 // Express Master
 module.exports = (dbctl, log, stage) => {
@@ -36,6 +42,7 @@ module.exports = (dbctl, log, stage) => {
 
   let app = express();
 
+  app.use(raven.middleware.express.requestHandler(CONFIG.sentry.DSN))
   app.use(cp());
   app.use(BP.json());
   app.use(BP.urlencoded({ extended: true }));
@@ -115,6 +122,8 @@ module.exports = (dbctl, log, stage) => {
         });
       })
 
+      app.use(raven.middleware.express.errorHandler(CONFIG.sentry.DSN))
+
       app.get('/', (req, res) => {
         return res.send({
           success: true,
@@ -128,6 +137,7 @@ module.exports = (dbctl, log, stage) => {
         console.error(err);
         return next();
       });
+
     }
   ], err => {
     if(err) {
