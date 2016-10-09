@@ -2,7 +2,7 @@ FROM mhart/alpine-node:latest
 
 # DevOps.
 EXPOSE 80
-CMD ["./service/serviceinit.sh"]
+CMD ["./service/init.sh"]
 WORKDIR /backend
 VOLUME /backend/workspace
 
