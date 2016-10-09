@@ -319,31 +319,6 @@ module.exports = (Router, dbctl) => {
     });
   });
 
-  Router.get('/files/:assignment', auth.requireAuthentication(), (req, res) => {
-    let user = req.user;
-
-    let dirpath = path.join(__dirname, '../../workspaces/', user.username, req.params.assignment);
-    if(!fs.existsSync(dirpath)) {
-      return res.error('ASSIGNMENT_NOT_STARTED');
-    }
-
-    const Files = fs.readdirSync(dirpath);
-    if(!Files.length) return res.error('EMPTY_ASSIGNMENT');
-
-    console.log(dirpath);
-
-    res.writeHead(200, {
-      'Content-Type': 'application/zip',
-      'Content-disposition': 'attachment; filename='+req.params.assignment+'.zip'
-    })
-
-
-    let archive = archiver('zip')
-    archive.pipe(res)
-    archive.directory(dirpath, '/')
-    archive.finalize();
-  })
-
   /**
    * POST /users/update
    *
