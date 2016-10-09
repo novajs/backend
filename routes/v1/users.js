@@ -271,7 +271,7 @@ module.exports = (Router, dbctl) => {
       }
     ], (err, key) => {
       if(err) {
-        debug('authflow:final', 'INVALID')
+        debug('authflow:final', 'INVALID:', err)
         return res.error('AUTHFLOW_INVALID');
       }
 
