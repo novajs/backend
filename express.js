@@ -31,7 +31,7 @@ let whitelist = ['https://ide.tritonjs.com', 'https://tritonjs.com', 'https://ga
 let corsOptions = {
   origin: function(origin, callback){
     var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
-    callback(originIsWhitelisted ? null : 'Bad Request', originIsWhitelisted);
+    callback(originIsWhitelisted, originIsWhitelisted);
   },
   credentials: true
 };
@@ -133,12 +133,6 @@ module.exports = (dbctl, log, stage) => {
           }
         })
       });
-
-      app.use(function(err, req, res, next) {
-        console.error(err);
-        return next();
-      });
-
     }
   ], err => {
     if(err) {
