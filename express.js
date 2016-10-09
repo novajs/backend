@@ -13,16 +13,28 @@ const fs        = require('fs');
 const async     = require('async');
 const path      = require('path');
 
-const BP        = require('body-parser');
-const cors      = require('cors');
-const responses = require('./lib/response.js');
+// Express
 const cp        = require('cookie-parser');
 const raven     = require('raven');
+const BP        = require('body-parser');
+const cors      = require('cors');
 
+// Service Modules
 const CONFIG    = require('./lib/config.js');
+const responses = require('./lib/response.js');
+
 
 let client = new raven.Client(CONFIG.sentry.DSN);
 client.patchGlobal();
+
+let whitelist = ['https://ide.tritonjs.com', 'https://tritonjs.com', 'https://game.tritonjs.com'];
+let corsOptions = {
+  origin: function(origin, callback){
+    var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
+    callback(originIsWhitelisted ? null : 'Bad Request', originIsWhitelisted);
+  },
+  credentials: true
+};
 
 // Express Master
 module.exports = (dbctl, log, stage) => {
@@ -30,33 +42,20 @@ module.exports = (dbctl, log, stage) => {
     throw 'ERROR'
   }
 
-  // load our config or die.
-  let config;
-  try {
-    config  = require('./config/config.json')
-  } catch(e) {
-    config  = require('./config/config.example.json');
-  }
-
-  const API_VERSION = config.server.api_version;
+  const API_VERSION = CONFIG.server.api_version;
 
   let app = express();
 
-  app.use(raven.middleware.express.requestHandler(CONFIG.sentry.DSN))
+
+  if(CONFIG.sentry.enabled) {
+    log('Sentry Enabled')
+    app.use(raven.middleware.express.requestHandler(CONFIG.sentry.DSN, CONFIG.sentry.opts))
+  }
+
   app.use(cp());
   app.use(BP.json());
   app.use(BP.urlencoded({ extended: true }));
-
-  var whitelist = ['https://ide.tritonjs.com', 'https://tritonjs.com', 'https://game.tritonjs.com'];
-  var corsOptions = {
-    origin: function(origin, callback){
-      var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
-      callback(originIsWhitelisted ? null : 'Bad Request', originIsWhitelisted);
-    },
-    credentials: true
-  };
   app.use(cors(corsOptions));
-
   app.use(responses());
 
   log('middleware loaded')
@@ -122,7 +121,9 @@ module.exports = (dbctl, log, stage) => {
         });
       })
 
-      app.use(raven.middleware.express.errorHandler(CONFIG.sentry.DSN))
+      if(CONFIG.sentry.enabled) {
+        app.use(raven.middleware.express.errorHandler(CONFIG.sentry.DSN, CONFIG.sentry.opts))
+      }
 
       app.get('/', (req, res) => {
         return res.send({
@@ -156,8 +157,8 @@ module.exports = (dbctl, log, stage) => {
       sub: 'INIT'
     })
 
-    app.listen(config.server.port, function() {
-      log('express listening on', config.server.port);
+    app.listen(CONFIG.server.port, () => {
+      log('express listening on', CONFIG.server.port);
       stage.emit('finished', {
         stage: 2,
         name: 'express::start',

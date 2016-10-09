@@ -2,7 +2,7 @@ FROM mhart/alpine-node:latest
 
 # DevOps.
 EXPOSE 80
-CMD ["./serviceinit.sh"]
+CMD ["./service/serviceinit.sh"]
 WORKDIR /backend
 VOLUME /backend/workspace
 
@@ -17,6 +17,3 @@ COPY package.json /backend
 RUN npm install
 
 COPY . /backend
-
-# make sure ./serviceinit.sh is marked exec.
-RUN chmod +x ./serviceinit.sh
