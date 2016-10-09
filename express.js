@@ -27,11 +27,9 @@ const responses = require('./lib/response.js');
 let client = new raven.Client(CONFIG.sentry.DSN);
 client.patchGlobal();
 
-let whitelist = ['https://ide.tritonjs.com', 'https://tritonjs.com', 'https://game.tritonjs.com'];
 let corsOptions = {
   origin: function(origin, callback){
-    var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
-    callback(originIsWhitelisted, originIsWhitelisted);
+    callback(null, origin);
   },
   credentials: true
 };
