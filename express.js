@@ -25,7 +25,9 @@ const responses = require('./lib/response.js');
 
 
 let client = new raven.Client(CONFIG.sentry.DSN);
-client.patchGlobal();
+if(CONFIG.sentry.enabled) {
+  client.patchGlobal();
+}
 
 let corsOptions = {
   origin: function(origin, callback){
